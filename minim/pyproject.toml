@@ -1,0 +1,21 @@
+[project]
+name = "minim"
+version = "0.0.1"
+description = "Minimalist on-demand media player — sister to Quaver"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+    "media_core",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+minim = "minim.main:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"

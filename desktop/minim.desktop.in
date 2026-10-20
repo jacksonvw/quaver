@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Minim
+GenericName=Media Player
+Comment=Lightweight on-demand media player
+Exec=@PROJECT_ROOT@/bin/minim %F
+Icon=minim
+Terminal=false
+StartupNotify=true
+StartupWMClass=Minim
+Categories=AudioVideo;Audio;Video;Player;
+MimeType=application/ogg;audio/aac;audio/flac;audio/mp4;audio/mpeg;audio/ogg;audio/vnd.wave;audio/x-aac;audio/x-ape;audio/x-flac;audio/x-flac+ogg;audio/x-m4a;audio/x-matroska;audio/x-ms-wma;audio/x-musepack;audio/x-opus+ogg;audio/x-speex+ogg;audio/x-tta;audio/x-vorbis+ogg;audio/x-wav;audio/x-wavpack;video/mp2t;video/mp4;video/mpeg;video/ogg;video/quicktime;video/vnd.avi;video/webm;video/x-flv;video/x-m4v;video/x-matroska;video/x-ms-wmv;video/x-msvideo;video/x-ogm+ogg;video/x-theora+ogg;

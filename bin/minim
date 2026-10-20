@@ -1,0 +1,15 @@
+#!/bin/bash
+# Logs go to /tmp/minim.log so we can debug crashes after the fact.
+# Truncated on each launch — open it after a failed run with:
+#   tail -n 200 /tmp/minim.log
+#
+# Resolves the suite root from this script's own location, so ~/bin/minim
+# can be a symlink into any checkout (desktop/install.sh makes one).
+#
+# Pin /usr/bin/python3 explicitly: the dependencies are system packages,
+# and a desktop session can inherit a VIRTUAL_ENV-prefixed PATH that puts
+# another Python first — a bare `python3` there has no PySide6 and crashes
+# with ModuleNotFoundError when launched from the file manager.
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+exec env PYTHONPATH="$ROOT/minim" \
+    nohup /usr/bin/python3 -m minim.main "$@" >/tmp/minim.log 2>&1 &

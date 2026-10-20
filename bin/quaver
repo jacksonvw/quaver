@@ -1,0 +1,13 @@
+#!/bin/bash
+# Logs to /tmp/quaver.log — open after a failed run with:
+#   tail -n 200 /tmp/quaver.log
+#
+# Resolves the suite root from this script's own location, so ~/bin/quaver
+# can be a symlink into any checkout (desktop/install.sh makes one).
+#
+# Pin /usr/bin/python3 explicitly: the dependencies are system packages,
+# and a desktop session can inherit a VIRTUAL_ENV-prefixed PATH that puts
+# another Python first — bare `python3` would miss PySide6 there.
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+exec env PYTHONPATH="$ROOT/quaver" \
+    nohup /usr/bin/python3 -m quaver.main "$@" >/tmp/quaver.log 2>&1 &

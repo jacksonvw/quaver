@@ -1,0 +1,34 @@
+[project]
+name = "quaver"
+version = "0.1.0"
+description = "A desktop music player inspired by MusicBee"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+    "PySide6>=6.6",
+    "mutagen>=1.47",
+    "tomli-w>=1.0",
+    "httpx>=0.27",
+    "feedparser>=6.0",
+    "watchdog>=4.0",
+    "musicbrainzngs>=0.7",
+    "pyacoustid>=1.3",
+    "platformdirs>=4.0",
+    "yt-dlp>=2024.1",
+]
+
+[project.optional-dependencies]
+linux = [
+    "dbus-python>=1.3",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-qt>=4.4",
+]
+
+[project.scripts]
+quaver = "quaver.main:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
