@@ -1,28 +1,67 @@
-# Quaver
+# Quaver and Minim
 
-A media library for the Linux desktop — music, TV series, movies, podcasts
-and YouTube, all through one queue — and Minim, its lightweight sibling:
-open a file and it plays, with no library and no scanning. Both are built
-with PySide6 and GStreamer on a shared engine.
+A media library manager and a simple media player for the Linux desktop, sharing one engine.
+
+![Quaver playing an album from its music library](docs/screenshots/quaver.png)
+
+Quaver is a media library for the Linux desktop: music, TV series, movies,
+podcasts and YouTube, all through one queue. Minim is its lightweight
+sibling: open a file and it plays, with no library and no scanning. I built
+Quaver to get MusicBee's album-first library on Linux, then grew it into one
+queue for everything I listen to and watch; Minim covers the other case, a
+file in Downloads that should just play. Both are built with PySide6 and
+GStreamer on a shared engine, so playback, the queue, Now Playing and the
+equalizer behave the same in each.
+
+## Features
+
+**Quaver, the library**
+
+- Album-centric music library: artists, albums grouped by year, cover art from tags or folder images
+- Series and movies matched against TVmaze, or TMDB with your own API key, with Kodi `.nfo` overrides
+- Files tabs that browse any folder as a thumbnail grid
+- Podcasts from the iTunes directory, with auto-download, retention and resume
+- YouTube channels through yt-dlp: search, subscribe, stream or download
+- Saved playlists, and an Auto-DJ that keeps the queue topped up from the library
+- Tag editor for one or many tracks, with MusicBrainz and AcoustID lookup
+- Sources on local disks or SMB shares, mounted through KIO FUSE
+
+**Minim, the player**
+
+- Plays whatever you open: from the file manager, the command line, Ctrl+O or drag and drop
+- Drop on the artwork to play now, on the queue to add; a folder queues every file in it
+- No library and no history: each launch starts with an empty queue
+
+**Both, from the shared engine**
+
+- Gapless playback, ReplayGain, a 10-band equalizer with presets, a compressor and 0.5–2× speed
+- Video, with ASS/SSA subtitles rendered by libass, SRT and VTT, and audio and subtitle track switching
+- Now Playing: large artwork on a blurred or gradient background, with a spectrum visualizer
+- Fullscreen with a floating transport, MPRIS2 media controls, and KWin blur behind a translucent window
+
+## Status
+
+In progress, and working on Fedora 44 with KDE Plasma 6 on Wayland. Missing:
+packages (both run from a checkout), tag reading in Minim (it titles tracks by
+file name), and testing on other distributions.
+
+## Built with
+
+Python 3 and PySide6 (Qt 6), with GStreamer 1.x through PyGObject for audio
+and video. libass, called through ctypes, renders subtitles; mutagen, SQLite
+and watchdog run the library; musicbrainzngs, pyacoustid, feedparser, httpx
+and yt-dlp handle lookups, podcasts and YouTube; dbus-python provides MPRIS2.
+It targets Linux: Fedora's system Python and RPMs, on KDE Plasma 6.
 
 | Directory | What it is |
 |---|---|
 | `quaver/` | The library app |
 | `minim/` | The click-to-play player |
-| `media_core/` | Shared engine, transport, queue, Now Playing and MPRIS2 |
+| `media_core/` | The shared engine: playback, transport, queue, Now Playing and MPRIS2 |
 
-## Highlights
+## Build and run
 
-- Gapless playback, ReplayGain, a 10-band equalizer and a compressor
-- Album-centric music browsing; series and movies matched against TVmaze or TMDB
-- Podcasts with auto-download and resume, and YouTube channels
-- Tag editor with MusicBrainz and AcoustID lookup
-- Now Playing view with a spectrum visualizer
-- MPRIS2 media controls
-
-## Install (Fedora)
-
-The apps run on the system Python against distribution packages, with no
+The apps run on the system Python against Fedora packages, with no
 virtualenv: the GStreamer bindings and PySide6 come from RPMs built for
 `/usr/bin/python3`, which is why the launchers pin it.
 
@@ -39,8 +78,15 @@ sudo dnf install -y \
 
 git clone https://github.com/jacksonvw/quaver.git
 cd quaver
-desktop/install.sh
+bin/quaver                  # the library
+bin/minim video.mkv         # play a file, or a folder of them
 ```
+
+In Quaver, add a folder under ☰ → Library → Add Source…, and it scans it into
+the library. Logs go to `/tmp/quaver.log` and `/tmp/minim.log`. Settings live
+in `~/.config/quaver/` and `~/.config/minim/`, and Quaver's library database in
+`~/.local/share/quaver/`. The TMDB scraper needs your own API key, entered in
+Preferences.
 
 `desktop/install.sh` links `bin/quaver` and `bin/minim` into `~/bin`,
 installs Minim's desktop entry and icon, and makes Minim the default player
@@ -51,26 +97,24 @@ Every package above comes from Fedora's own repositories, which decode
 H.264, AAC, AC-3 and AV1 but not HEVC or E-AC-3; RPM Fusion's full `ffmpeg`
 adds those. Other distributions need the equivalent packages.
 
-## Usage
-
-```bash
-quaver                  # the library
-minim video.mkv         # play files, or open them from the file manager
-```
-
-Logs go to `/tmp/quaver.log` and `/tmp/minim.log`. Settings live in
-`~/.config/quaver/` and `~/.config/minim/`, and Quaver's library database in
-`~/.local/share/quaver/`. The TMDB scraper needs your own API key, entered
-in Preferences.
-
-## Tests
+The tests run headless, on Qt's offscreen platform, in a couple of seconds:
 
 ```bash
 /usr/bin/python3 -m pytest quaver/quaver/tests/ minim/minim/tests/
 ```
 
-The suite is headless (Qt's offscreen platform) and takes about a second.
+## More screenshots
 
-## License
+![Quaver's Now Playing view: the cover over a blur of itself, with the spectrum](docs/screenshots/quaver-now-playing.png)
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+![Minim playing a video, with the queue hidden](docs/screenshots/minim.png)
+
+![Minim playing an album folder](docs/screenshots/minim-music.png)
+
+The albums in these screenshots are made up for the demo. The video is the
+trailer for *Sintel*, © Blender Foundation,
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+
+---
+
+Jackson Vander Wal · [jacksonv.com](https://jacksonv.com)
