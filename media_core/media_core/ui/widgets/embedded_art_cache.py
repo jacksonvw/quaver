@@ -21,16 +21,7 @@ from PySide6.QtGui import QPixmap
 from media_core.core.embedded_art import extract_art
 from media_core.core.freedesktop_thumbs import load_thumbnail as _fdo_load
 from media_core.core.media_exts import VIDEO_EXTS_DOTTED
-
-
-def _is_network_path(path: str) -> bool:
-    """Return True if *path* is on a network mount (KIO FUSE / GVFS).
-
-    These paths are expensive to stat/read — we skip eager art extraction
-    for them.  Quaver's wrapper falls back to scraper-provided posters
-    for these files.
-    """
-    return "/kio-fuse-" in path or "/gvfs/" in path
+from media_core.core.network import is_network_path as _is_network_path
 
 
 # Global cache: (filepath, size) → scaled QPixmap | None.

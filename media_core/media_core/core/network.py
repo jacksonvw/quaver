@@ -34,6 +34,16 @@ _KIO_FUSE_IFACE = "org.kde.KIOFuse.VFS"
 _mounted_in_session: set[str] = set()
 
 
+def is_network_path(path: str) -> bool:
+    """Return True if *path* is on a network mount (KIO FUSE / GVFS).
+
+    These paths are expensive to stat and read, so anything that would
+    open many of them eagerly (queue art, background tag reads) skips
+    them.
+    """
+    return "/kio-fuse-" in path or "/gvfs/" in path
+
+
 def ensure_mounted(uri: str, timeout_sec: float = 15.0) -> tuple[bool, str]:
     """Mount an SMB URI via KIO FUSE.  Returns (success, error_message).
 
