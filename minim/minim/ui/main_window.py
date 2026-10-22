@@ -33,6 +33,7 @@ from media_core.core.blur import set_blur_behind
 from media_core.core.replaygain import RGMode
 from media_core.core.track import Track
 from media_core.services.player_service import PlayerService, RepeatMode
+from media_core.services.tag_reader import TagReader
 from media_core.ui.panels.nowplaying_panel import NowPlayingPanel
 from media_core.ui.widgets.dsp_popup import DspPopup
 from media_core.ui.widgets.eq_popup import EqPopup
@@ -68,6 +69,13 @@ class MainWindow(QMainWindow):
 
         # Core service.  No DB — Minim is library-less.
         self._player = PlayerService(db=None)
+
+        # Tracks opened from paths start with filename titles and get their
+        # tags in the background.  ensure() reads the track about to play on
+        # the spot, so it's connected before MPRIS and the UI, which all
+        # read the track's metadata on track_changed.
+        self._tag_reader = TagReader(self)
+        self._player.track_changed.connect(self._tag_reader.ensure)
 
         # Optional MPRIS2.  Failure (no D-Bus, name taken) is non-fatal.
         self._mpris2 = None
@@ -160,6 +168,7 @@ class MainWindow(QMainWindow):
         self._player.state_changed.connect(self._on_state_changed)
         self._player.track_changed.connect(self._on_track_changed)
         self._player.queue_changed.connect(self._on_queue_changed)
+        self._tag_reader.tracks_updated.connect(self._queue.refresh_tracks)
         self._player.position_updated.connect(self._transport.set_position)
         self._player.spectrum_updated.connect(
             self._transport.spectrum_widget.update_magnitudes
@@ -242,6 +251,8 @@ class MainWindow(QMainWindow):
             self._transport.set_status_message("No playable files in selection")
             return
         self._transport.clear_status_message()
+        self._tag_reader.cancel()  # the old queue is being replaced
+        self._tag_reader.queue(tracks)
         self._player.play_tracks(tracks, start_index=0)
 
     def enqueue_paths(self, paths: list[str]) -> None:
@@ -249,6 +260,7 @@ class MainWindow(QMainWindow):
         tracks = tracks_from_paths(list(paths))
         if not tracks:
             return
+        self._tag_reader.queue(tracks)
         was_idle = not self._player.queue
         for t in tracks:
             self._player.enqueue(t)
@@ -271,6 +283,7 @@ class MainWindow(QMainWindow):
             self._transport.set_status_message("No playable files in selection")
             return
         self._transport.clear_status_message()
+        self._tag_reader.queue(tracks)
         if not self._player.queue:
             self._player.play_tracks(tracks, start_index=0)
         else:

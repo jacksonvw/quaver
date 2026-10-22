@@ -42,8 +42,7 @@ equalizer behave the same in each.
 ## Status
 
 In progress, and working on Fedora 44 with KDE Plasma 6 on Wayland. Missing:
-packages (both run from a checkout), tag reading in Minim (it titles tracks by
-file name), and testing on other distributions.
+packages (both run from a checkout) and testing on other distributions.
 
 ## Built with
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import mutagen
 from mutagen.easyid3 import EasyID3
@@ -14,6 +15,9 @@ from mutagen.flac import FLAC
 from mutagen.mp4 import MP4
 from mutagen.oggopus import OggOpus
 from mutagen.oggvorbis import OggVorbis
+
+if TYPE_CHECKING:
+    from media_core.core.track import Track
 
 
 @dataclass
@@ -113,6 +117,41 @@ def read_tags(path: str | Path) -> TrackTags | None:
     tags.replay_gain_album = _parse_rg(rg_album)
 
     return tags
+
+
+def apply_tags(track: Track, tags: TrackTags | None) -> bool:
+    """Copy *tags* into *track*'s descriptive fields, in place.
+
+    Only fields the tags actually provide are copied, so a track built
+    from a bare path keeps its filename title and stays playable when
+    the file has no tags or can't be read.  The track's identity (id,
+    filepath, format, media_type) is never touched.
+
+    Returns True if any field changed.
+    """
+    if tags is None:
+        return False
+    updates = {
+        "title": tags.title,
+        "artist": tags.artist,
+        "album": tags.album,
+        "album_artist": tags.album_artist,
+        "year": tags.year,
+        "genre": tags.genre,
+        "track_number": tags.track_number,
+        "disc_number": tags.disc_number,
+        "duration_ms": tags.duration_ms or None,
+        "bitrate": tags.bitrate or None,
+        "replay_gain_track": tags.replay_gain_track,
+        "replay_gain_album": tags.replay_gain_album,
+    }
+    changed = False
+    for name, value in updates.items():
+        if value is None or value == "" or getattr(track, name) == value:
+            continue
+        setattr(track, name, value)
+        changed = True
+    return changed
 
 
 # EasyID3/EasyMP4/Vorbis key mapping — all share the same easy interface.

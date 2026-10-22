@@ -58,10 +58,28 @@ class _StubTransport:
         self.status = None
 
 
+class _StubTagReader:
+    """Records what reaches the tag reader, and how many player calls
+    had already happened at that moment."""
+
+    def __init__(self, player: _StubPlayer) -> None:
+        self._player = player
+        self.queued: list[tuple[list[str], int]] = []
+        self.cancelled_at: list[int] = []
+
+    def queue(self, tracks: list[Track]) -> None:
+        self.queued.append(([t.filepath for t in tracks], len(self._player.calls)))
+
+    def cancel(self) -> None:
+        self.cancelled_at.append(len(self._player.calls))
+
+
 def _make_stub(queue: list[Track] | None = None) -> SimpleNamespace:
+    player = _StubPlayer(queue=queue)
     return SimpleNamespace(
-        _player=_StubPlayer(queue=queue),
+        _player=player,
         _transport=_StubTransport(),
+        _tag_reader=_StubTagReader(player),
     )
 
 
@@ -155,3 +173,42 @@ def test_tracks_dropped_with_empty_list_is_noop() -> None:
     stub = _make_stub(queue=[_stub_track("/x.mp3")])
     MainWindow._on_tracks_dropped(stub, [], 0)
     assert stub._player.calls == []
+
+
+# ── Tag reading ──────────────────────────────────────────────────────
+# Tracks opened by path reach the tag reader before the player starts
+# them, so the reader can tag the first track as it starts playing.
+
+
+def test_play_paths_replaces_pending_reads_before_playing(tmp_path) -> None:
+    f = tmp_path / "a.mp3"
+    f.write_bytes(b"")
+    stub = _make_stub(queue=[_stub_track("/old/x.mp3")])
+
+    MainWindow.play_paths(stub, [str(f)])
+
+    assert stub._tag_reader.cancelled_at == [0]
+    assert stub._tag_reader.queued == [([str(f)], 0)]
+    assert stub._player.calls[0][0] == "play_tracks"
+
+
+def test_enqueue_paths_queues_tags_before_enqueueing(tmp_path) -> None:
+    f = tmp_path / "a.mp3"
+    f.write_bytes(b"")
+    stub = _make_stub(queue=[_stub_track("/old/x.mp3")])
+
+    MainWindow.enqueue_paths(stub, [str(f)])
+
+    assert stub._tag_reader.queued == [([str(f)], 0)]
+    assert stub._tag_reader.cancelled_at == []  # the queue it joins keeps its reads
+
+
+def test_play_paths_now_queues_tags_before_playing(tmp_path) -> None:
+    f = tmp_path / "a.mp3"
+    f.write_bytes(b"")
+    stub = _make_stub(queue=[_stub_track("/old/x.mp3")])
+
+    MainWindow.play_paths_now(stub, [str(f)])
+
+    assert stub._tag_reader.queued == [([str(f)], 0)]
+    assert stub._tag_reader.cancelled_at == []

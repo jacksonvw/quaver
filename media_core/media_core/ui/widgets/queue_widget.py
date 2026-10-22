@@ -217,6 +217,11 @@ class _QueueModel(QAbstractListModel):
             if pm is not None:
                 self._art[i] = pm
 
+    def refresh(self) -> None:
+        """Repaint every row from its Track without resetting the model."""
+        if self._tracks:
+            self.dataChanged.emit(self.index(0), self.index(len(self._tracks) - 1))
+
     def rowCount(self, parent=QModelIndex()) -> int:
         return len(self._tracks)
 
@@ -632,6 +637,11 @@ class QueueWidget(QWidget):
         self._view.setUpdatesEnabled(False)
         self._model.load(tracks, current_index, poster_paths=poster_paths)
         self._view.setUpdatesEnabled(True)
+
+    def refresh_tracks(self) -> None:
+        """Repaint the rows after their tracks' metadata changed in place
+        (e.g. tags read in the background), keeping scroll and selection."""
+        self._model.refresh()
 
     def _show_header_menu(self, pos) -> None:
         """Right-click menu on the Queue header label."""

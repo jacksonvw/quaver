@@ -33,10 +33,11 @@ def _media_type(ext: str) -> str:
 def track_from_path(path: str | Path) -> Track:
     """Build a transient :class:`Track` from a filesystem path.
 
-    No file I/O — title is the basename's stem, every other field gets
-    a sensible empty default.  Duration is filled in lazily by
-    GStreamer once playback starts (the seek bar reads it from
-    :class:`AudioEngine`).
+    No file I/O, so a folder of thousands of files queues instantly:
+    the title is the basename's stem and every other field gets an
+    empty default.  The main window hands new tracks to
+    :class:`media_core.services.tag_reader.TagReader`, which fills in
+    title, artist, album and duration from the file's tags.
     """
     p = Path(path).expanduser()
     ext = _ext(p)
