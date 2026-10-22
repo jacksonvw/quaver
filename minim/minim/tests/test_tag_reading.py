@@ -246,3 +246,16 @@ def test_track_changed_listeners_see_tags(app, tmp_path: Path) -> None:
 
     assert seen == [("Song 2", "Made Up", "Demo")]
     reader.shutdown()
+
+
+def test_queue_rows_show_artist_and_album() -> None:
+    from media_core.ui.widgets.queue_widget import _byline
+
+    track = track_from_path("/music/01 Sea Breeze.flac")
+    assert _byline(track) == ""
+    track.artist, track.album = "Made Up", "Summer"
+    assert _byline(track) == "Made Up — Summer"
+    track.album = "Made Up"  # self-titled: say it once
+    assert _byline(track) == "Made Up"
+    track.artist = ""
+    assert _byline(track) == "Made Up"

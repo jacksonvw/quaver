@@ -291,8 +291,15 @@ class _QueueModel(QAbstractListModel):
 # ── Delegate ─────────────────────────────────────────────────────────
 
 
+def _byline(track: Track) -> str:
+    """A queue row's second line: the artist, then the album if it adds anything."""
+    if track.album and track.album != track.artist:
+        return f"{track.artist} — {track.album}" if track.artist else track.album
+    return track.artist or ""
+
+
 class _QueueDelegate(ConsistentItemDelegate):
-    """Paints each queue row: [art] [title / artist] [duration]."""
+    """Paints each queue row: [art] [title / artist — album] [duration]."""
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         return QSize(option.rect.width(), _ROW_HEIGHT)
@@ -365,13 +372,13 @@ class _QueueDelegate(ConsistentItemDelegate):
         title_text = title_fm.elidedText(track.title or "Unknown", Qt.TextElideMode.ElideRight, title_w)
         painter.drawText(text_x, y, title_w, title_fm.height(), Qt.AlignmentFlag.AlignLeft, title_text)
 
-        # Artist (smaller, lighter).
+        # Artist — album (smaller, lighter).
         artist_font = QFont(option.font)
         artist_font.setPointSize(max(7, option.font.pointSize() - 2))
         painter.setFont(artist_font)
         painter.setPen(sub_color)
         artist_fm = QFontMetrics(artist_font)
-        artist_text = artist_fm.elidedText(track.artist or "", Qt.TextElideMode.ElideRight, title_w)
+        artist_text = artist_fm.elidedText(_byline(track), Qt.TextElideMode.ElideRight, title_w)
         artist_y = y + title_fm.height() + 1
         painter.drawText(text_x, artist_y, title_w, artist_fm.height(), Qt.AlignmentFlag.AlignLeft, artist_text)
 
