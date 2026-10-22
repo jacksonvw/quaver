@@ -151,7 +151,7 @@ class PreferencesDialog(QDialog):
         opacity_row = QHBoxLayout()
         opacity_row.addWidget(self._opacity_slider)
         opacity_row.addWidget(self._opacity_label)
-        win_form.addRow("Transparency:", opacity_row)
+        win_form.addRow("Opacity:", opacity_row)
 
         # Blur behind.
         self._blur_behind_cb = QCheckBox("Enable blur behind window (KDE)")
