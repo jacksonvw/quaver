@@ -2,7 +2,9 @@
 
 import os
 import sys
+from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from quaver.ui.main_window import MainWindow
@@ -16,8 +18,9 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("Quaver")
 
-    from quaver.ui.icons import icon_app
-    app.setWindowIcon(icon_app())
+    icon_path = Path(__file__).parent / "resources" / "quaver.svg"
+    if icon_path.is_file():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
     try:
         window = MainWindow()

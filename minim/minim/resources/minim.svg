@@ -1,15 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <!-- Minim app icon: a minim (half note) — open notehead + stem.
-       Visually paired with Quaver's "Q + EQ bars" by sharing the
-       white-on-transparent treatment, sized for dark themes. -->
-
-  <!-- Open notehead: rotated ellipse, hollow (stroke-only). -->
-  <g transform="translate(96 168) rotate(-22)">
-    <ellipse cx="0" cy="0" rx="46" ry="32"
-             fill="none" stroke="white" stroke-width="14"/>
-  </g>
-
-  <!-- Stem: tall thin bar on the right side of the notehead. -->
-  <rect x="135" y="40" width="14" height="146" rx="4" ry="4" fill="white"/>
+<!-- Minim: a minim (half note), drawn the way it is engraved: the head tilts
+     20 degrees, its counter tilts more steeply so the sides are heavier than
+     the top and bottom, and the stem's right edge sits on the head's
+     rightmost tangent. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M 11.869 10.166 A 4.5 3.1 -20 1 1 3.412 13.244 A 4.5 3.1 -20 1 1 11.869 10.166 Z M 9.847 9.982 A 2.8 1.3 -38 1 1 5.434 13.429 A 2.8 1.3 -38 1 1 9.847 9.982 Z"/>
+  <rect x="10" y="1" width="2" height="10.521" fill="#FFFFFF"/>
 </svg>

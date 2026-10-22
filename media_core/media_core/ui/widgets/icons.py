@@ -393,64 +393,6 @@ def icon_fullscreen(size: int = 64, color: QColor | None = None) -> QIcon:
     return _render(draw, size, color)
 
 
-# -- App icon ----------------------------------------------------------
-
-def icon_app(color: QColor | None = None) -> QIcon:
-    """Quaver app icon — Q with equalizer bars as the tail.
-
-    Rendered at multiple sizes so taskbar, title bar, and alt-tab all
-    look crisp. Uses the palette foreground color for theme matching.
-    """
-    def draw(p: QPainter, r: QRectF, c: QColor):
-        w, h = r.width(), r.height()
-        cx, cy = r.x() + w * 0.42, r.y() + h * 0.44
-        radius = w * 0.32
-
-        # -- Q circle (open at bottom-right for the tail) --
-        pen = QPen(c, w * 0.07, Qt.PenStyle.SolidLine,
-                   Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
-        p.setPen(pen)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-
-        from PySide6.QtCore import QRectF as RF
-        arc_rect = RF(cx - radius, cy - radius, radius * 2, radius * 2)
-        # Draw arc from ~315° around to ~45° (leaving a gap at bottom-right).
-        # Qt arcs: 0° = 3 o'clock, counter-clockwise, in 1/16th degree units.
-        p.drawArc(arc_rect, 20 * 16, 300 * 16)
-
-        # -- Equalizer bars as the Q's tail --
-        # 4 bars descending from the gap, positioned at bottom-right.
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(c)
-
-        bar_w = w * 0.065
-        bar_gap = w * 0.03
-        bar_x_start = cx + radius * 0.35
-        bar_bottom = cy + radius * 0.95
-
-        # Bar heights as fractions — ascending pattern like a spectrum.
-        bar_heights = [0.22, 0.42, 0.55, 0.35]
-
-        for i, bh in enumerate(bar_heights):
-            bx = bar_x_start + i * (bar_w + bar_gap)
-            bar_h = h * bh
-            by = bar_bottom - bar_h
-            p.drawRoundedRect(RF(bx, by, bar_w, bar_h), bar_w * 0.3, bar_w * 0.3)
-
-    color = color or _palette_fg()
-    icon = QIcon()
-    # Render at multiple sizes for different display contexts.
-    for sz in (16, 24, 32, 48, 64, 128, 256):
-        pix = QPixmap(sz, sz)
-        pix.fill(Qt.GlobalColor.transparent)
-        p = QPainter(pix)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        draw(p, QRectF(0, 0, sz, sz), color)
-        p.end()
-        icon.addPixmap(pix)
-    return icon
-
-
 # -- Utility: icon button helper ---------------------------------------
 
 def set_icon_button(button, icon: QIcon, size: int = 18) -> None:

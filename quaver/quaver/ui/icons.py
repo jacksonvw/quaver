@@ -10,7 +10,6 @@ the widgets that consume them.
 """
 
 from media_core.ui.widgets.icons import (  # noqa: F401
-    icon_app,
     icon_fullscreen,
     icon_hamburger,
     icon_next,

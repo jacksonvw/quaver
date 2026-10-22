@@ -1,16 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <!-- Quaver app icon: Q with equalizer bars as tail -->
-  <!-- White on transparent — suitable for dark themes -->
-
-  <!-- Q arc (open at bottom-right) -->
-  <path d="M 184.5,84.6 A 81.9,81.9 0 1 0 170.3,165.3"
-        fill="none" stroke="white" stroke-width="17.9"
-        stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Equalizer bars (Q tail) -->
-  <rect x="136.2" y="134.1" width="16.6" height="56.3" rx="5.0" ry="5.0" fill="white"/>
-  <rect x="160.5" y="82.9" width="16.6" height="107.5" rx="5.0" ry="5.0" fill="white"/>
-  <rect x="184.8" y="49.7" width="16.6" height="140.8" rx="5.0" ry="5.0" fill="white"/>
-  <rect x="209.2" y="100.9" width="16.6" height="89.6" rx="5.0" ry="5.0" fill="white"/>
+<!-- Quaver: a Q whose tail is a run of equaliser bars. The bowl is open at
+     the lower right; the bars stand on the bowl's baseline, the middle one
+     directly under the bowl's open end, every gap one grid unit. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <path d="M 6 13 A 5 5 0 1 1 11 8" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+  <rect x="7" y="10" width="2" height="4" fill="#FFFFFF"/>
+  <rect x="10" y="9" width="2" height="5" fill="#FFFFFF"/>
+  <rect x="13" y="11" width="2" height="3" fill="#FFFFFF"/>
 </svg>
