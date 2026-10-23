@@ -356,6 +356,11 @@ class AudioEngine:
         """Return the current subtitle stream index (-1 = off)."""
         if not self._subtitles_enabled:
             return -1
+        if self._current_sub_index < 0:
+            # None chosen yet: report the stream playbin3 picked itself.
+            for i, s in enumerate(self._streams_by_type(Gst.StreamType.TEXT)):
+                if s.get_stream_id() in self._selected_streams:
+                    return i
         return self._current_sub_index
 
     def get_subtitle_serial(self) -> int:

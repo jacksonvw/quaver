@@ -127,6 +127,17 @@ def test_ass_subtitles_count_as_decodable(engine) -> None:
     assert engine.get_subtitle_track_support() == [True, True]
 
 
+def test_current_subtitle_reports_playbins_own_pick(engine) -> None:
+    """Before a track is chosen, the Subtitles menu checks the one showing."""
+    engine._stream_collection = _video_audio_text()
+    engine._selected_streams = {"v0", "a0", "t1"}
+    assert engine.get_current_subtitle() == 1
+
+    engine._select_streams = lambda ids: None
+    engine.set_current_subtitle(0)
+    assert engine.get_current_subtitle() == 0
+
+
 def test_subtitle_serial_changes_only_with_the_stream(engine) -> None:
     """The overlay resets on the serial; off and on again must not reset."""
     engine._stream_collection = _video_audio_text()
