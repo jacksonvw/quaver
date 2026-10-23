@@ -989,6 +989,12 @@ class LibraryService(QObject):
 
         self._observer = Observer()
         handler = _WatchdogHandler(self._on_fs_event, folder_types)
+        # Start before scheduling: a running observer starts each source's
+        # inotify emitter inside schedule(), so a failure there (a missing
+        # folder, or the per-user inotify instance or watch limit) skips that
+        # source instead of escaping start() and leaving none watched.
+        self._observer.daemon = True
+        self._observer.start()
 
         for f in folders:
             # Skip network sources — recursive inotify walks the entire
@@ -1006,11 +1012,8 @@ class LibraryService(QObject):
                 self._observer.schedule(
                     handler, folder_path, recursive=bool(f["recursive"]),
                 )
-            except OSError:
-                log.debug("Skipping inaccessible source: %s", folder_path)
-
-        self._observer.daemon = True
-        self._observer.start()
+            except OSError as exc:
+                log.warning("Not watching %s for changes: %s", folder_path, exc)
 
     def stop_watching(self) -> None:
         if self._observer is not None:
