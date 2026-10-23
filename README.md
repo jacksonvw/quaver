@@ -114,8 +114,8 @@ The tests run headless, on Qt's offscreen platform, in a couple of seconds:
 
 ![Minim playing an album folder](docs/screenshots/minim-music.png)
 
-The albums and the podcast in these screenshots are made up for the demo. The video is the
-trailer for *Sintel*, © Blender Foundation,
+The albums and the podcast in these screenshots are made up for the demo.
+The video is the trailer for *Sintel*, © Blender Foundation,
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 
 ---
