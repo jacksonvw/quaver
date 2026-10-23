@@ -88,14 +88,11 @@ class VideoSurface(QWidget):
         """
         if not self._current_frame:
             return self.rect()
-        scaled = self._current_frame.scaled(
-            self.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-        x = (self.width() - scaled.width()) // 2
-        y = (self.height() - scaled.height()) // 2
-        return QRect(x, y, scaled.width(), scaled.height())
+        # The size QImage.scaled() gives, without scaling the frame.
+        size = self._current_frame.size().scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
+        x = (self.width() - size.width()) // 2
+        y = (self.height() - size.height()) // 2
+        return QRect(x, y, size.width(), size.height())
 
     def paintEvent(self, event) -> None:
         if not self._current_frame:

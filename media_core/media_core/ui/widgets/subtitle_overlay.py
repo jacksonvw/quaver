@@ -17,7 +17,7 @@ import html
 import logging
 import re
 
-from PySide6.QtCore import QEvent, Qt, QRectF, QTimer
+from PySide6.QtCore import QEvent, QPoint, QRect, QRectF, Qt, QTimer
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -64,6 +64,7 @@ class SubtitleOverlay(QWidget):
         self._libass = LibassRenderer()
         self._libass_track_ready = False
         self._ass_bitmaps: list[SubtitleBitmap] = []
+        self._ass_origin = QPoint()  # the picture's corner, where bitmaps start
         self._sub_serial = 0  # the engine's, as of the last poll
 
         # --- QPainter text (SRT/VTT path) ---
@@ -185,13 +186,16 @@ class SubtitleOverlay(QWidget):
             self._feed_ass_chunks(ass_chunks)
 
         if self._libass_track_ready and self._libass.available:
-            w, h = self.width(), self.height()
-            if w > 0 and h > 0:
-                self._libass.set_frame_size(w, h)
+            # Lay ASS out on the picture, not the page around it, so a
+            # letterboxed video keeps its positions and font sizes.
+            area = self._picture_rect()
+            if area.width() > 0 and area.height() > 0:
+                self._libass.set_frame_size(area.width(), area.height())
                 pos_ms = self._engine.get_position_ms()
                 bitmaps = self._libass.render_frame(pos_ms)
-                if bitmaps != self._ass_bitmaps:
+                if bitmaps != self._ass_bitmaps or area.topLeft() != self._ass_origin:
                     self._ass_bitmaps = bitmaps
+                    self._ass_origin = area.topLeft()
                     self.update()
             # ASS path is active — skip text path.
             return
@@ -206,6 +210,14 @@ class SubtitleOverlay(QWidget):
                 self._hide_timer.stop()
                 self._hide_timer.start(max(duration_ms, 500))
                 self.update()
+
+    def _picture_rect(self) -> QRect:
+        """Where the video picture is drawn, in this widget's coordinates."""
+        surface = self._video_surface
+        if surface is None:
+            return self.rect()
+        # The surface is a sibling in the same video page.
+        return surface.video_rect().translated(surface.pos() - self.pos())
 
     def _feed_ass_chunks(self, chunks: list[tuple[bytes, int, int]]) -> None:
         """Initialize libass track if needed, then feed dialogue chunks."""
@@ -250,7 +262,7 @@ class SubtitleOverlay(QWidget):
                 continue
             img = QImage(bm.rgba, bm.w, bm.h, bm.w * 4,
                          QImage.Format.Format_RGBA8888)
-            p.drawImage(bm.x, bm.y, img)
+            p.drawImage(self._ass_origin.x() + bm.x, self._ass_origin.y() + bm.y, img)
 
         p.end()
 

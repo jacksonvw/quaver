@@ -74,3 +74,42 @@ def test_switching_from_ass_to_srt_shows_the_srt(qapp) -> None:
     assert not overlay._libass_track_ready
     assert overlay._current_text == "Italic via SRT tags"
     overlay.stop()
+
+
+class _Libass:
+    """Records the frame libass is given; renders one bitmap."""
+
+    available = True
+
+    def __init__(self) -> None:
+        self.frame = None
+
+    def set_frame_size(self, w: int, h: int) -> None:
+        self.frame = (w, h)
+
+    def render_frame(self, now_ms: int) -> list:
+        return ["bitmap"]
+
+
+def test_ass_is_laid_out_on_the_picture_not_the_page(qapp) -> None:
+    """Letterboxed video: libass gets the picture's size, and its bitmaps
+    are drawn from the picture's corner."""
+    from PySide6.QtCore import QPoint, QRect
+
+    page = QWidget()
+    page.resize(1064, 670)
+
+    class _Surface(QWidget):
+        def video_rect(self):
+            return QRect(0, 36, 1064, 598)
+
+    surface = _Surface(page)
+    surface.setGeometry(page.rect())
+    overlay = SubtitleOverlay(page)
+    overlay.start(_Engine(), surface)
+    overlay._libass = _Libass()
+    overlay._libass_track_ready = True
+    overlay._poll()
+    assert overlay._libass.frame == (1064, 598)
+    assert overlay._ass_origin == QPoint(0, 36)
+    overlay.stop()
