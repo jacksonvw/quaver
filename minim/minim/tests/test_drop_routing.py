@@ -5,6 +5,7 @@ append.  See :meth:`MainWindow.dropEvent` and
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -212,3 +213,19 @@ def test_play_paths_now_queues_tags_before_playing(tmp_path) -> None:
 
     assert stub._tag_reader.queued == [([str(f)], 0)]
     assert stub._tag_reader.cancelled_at == []
+
+
+def test_enqueue_paths_appends_a_folder_in_one_queue_change(tmp_path) -> None:
+    """One queue change per track reloaded the queue N times — a 1000-file
+    drop froze Minim for over ten seconds."""
+    for name in ("a.mp3", "b.mp3", "c.mp3"):
+        (tmp_path / name).write_bytes(b"")
+    stub = _make_stub(queue=[_stub_track("/old/x.mp3")])
+
+    MainWindow.enqueue_paths(stub, [str(tmp_path)])
+
+    assert [c[0] for c in stub._player.calls] == ["insert_tracks"]
+    name, tracks, pos = stub._player.calls[0]
+    assert pos == 1
+    assert [Path(t.filepath).name for t in tracks] == ["a.mp3", "b.mp3", "c.mp3"]
+

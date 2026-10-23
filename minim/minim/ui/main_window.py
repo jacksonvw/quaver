@@ -261,14 +261,15 @@ class MainWindow(QMainWindow):
         if not tracks:
             return
         self._tag_reader.queue(tracks)
-        was_idle = not self._player.queue
-        for t in tracks:
-            self._player.enqueue(t)
         # If the queue was empty, start playback automatically — the
         # behavioural spec says "drag a folder onto the window → queue
-        # populated and first plays".
-        if was_idle:
+        # populated and first plays".  Otherwise append the whole drop in
+        # one queue change: one per track reloaded the queue each time,
+        # freezing Minim for seconds on a big folder.
+        if not self._player.queue:
             self._player.play_tracks(tracks, start_index=0)
+        else:
+            self._player.insert_tracks(tracks, len(self._player.queue))
 
     def play_paths_now(self, paths: list[str]) -> None:
         """Append *paths* to the queue and jump to the first appended track.
