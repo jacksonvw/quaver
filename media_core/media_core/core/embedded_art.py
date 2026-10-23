@@ -66,10 +66,13 @@ def extract_embedded_art(filepath: str) -> bytes | None:
         if covers:
             return bytes(covers[0])
 
-    if hasattr(audio, "tags") and audio.tags:
-        for key in audio.tags:
-            if key.startswith("APIC"):
-                return audio.tags[key].data
+    # Only ID3 (MP3, WAV, AIFF) has APIC frames.  Vorbis comments (FLAC,
+    # Ogg Vorbis, Opus) iterate as (key, value) tuples, so scanning keys
+    # generically raised and skipped both the picture and folder-art paths.
+    if hasattr(getattr(audio, "tags", None), "getall"):
+        frames = audio.tags.getall("APIC")
+        if frames:
+            return frames[0].data
 
     if hasattr(audio, "tags") and audio.tags:
         pics = (

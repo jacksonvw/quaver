@@ -116,3 +116,46 @@ def test_thumbnail_requests_while_loading_start_one_load(monkeypatch) -> None:
     assert len(started) == 1
     cache._cache.pop(key, None)
 
+
+
+def _tagged_flac(path, **tags):
+    """A header-only FLAC that mutagen parses, with Vorbis comments."""
+    from mutagen.flac import FLAC
+
+    rate = 44100
+    packed = (rate << 44) | (1 << 41) | (15 << 36) | rate
+    info = (4096).to_bytes(2, "big") * 2 + bytes(6) + packed.to_bytes(8, "big") + bytes(16)
+    path.write_bytes(b"fLaC" + bytes([0x80]) + len(info).to_bytes(3, "big") + info)
+    f = FLAC(path)
+    for key, value in tags.items():
+        f[key] = value
+    f.save()
+    return path
+
+
+def test_tagged_flac_without_picture_falls_back_to_folder_art(tmp_path) -> None:
+    """Vorbis comments iterate as (key, value) tuples; scanning them for ID3
+    APIC keys raised, so these files got no art at all — not even cover.jpg."""
+    from quaver.core.embedded_art import extract_art, extract_embedded_art
+
+    track = _tagged_flac(tmp_path / "song.flac", title="Song", artist="Someone")
+    (tmp_path / "cover.jpg").write_bytes(b"folder-art")
+
+    assert extract_embedded_art(str(track)) is None
+    assert extract_art(str(track)) == b"folder-art"
+
+
+def test_vorbis_comment_picture_is_found(tmp_path) -> None:
+    """Opus and Ogg Vorbis carry art as a base64 METADATA_BLOCK_PICTURE comment."""
+    import base64
+
+    from mutagen.flac import Picture
+
+    from quaver.core.embedded_art import extract_embedded_art
+
+    pic = Picture()
+    pic.type, pic.mime, pic.data = 3, "image/jpeg", b"embedded-art"
+    track = _tagged_flac(tmp_path / "song.flac", title="Song",
+                         metadata_block_picture=base64.b64encode(pic.write()).decode())
+
+    assert extract_embedded_art(str(track)) == b"embedded-art"
