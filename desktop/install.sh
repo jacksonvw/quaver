@@ -2,13 +2,14 @@
 # Install Quaver + Minim desktop integration into the user's home directory:
 #   - quaver and minim launchers on PATH, symlinked to this checkout's bin/
 #     (Quaver's "Open in Minim" looks minim up on PATH)
-#   - Minim's .desktop entry and icon
+#   - .desktop entries and icons for both apps; the icons must be in the
+#     theme for KWin to draw clean window icons (see quaver/main.py)
 #   - Minim as the default player for every MIME type that entry declares
 #
 # Files land in:
 #   ~/bin/quaver, ~/bin/minim                  (symlinks)
-#   ~/.local/share/applications/minim.desktop
-#   ~/.local/share/icons/hicolor/scalable/apps/minim.svg
+#   ~/.local/share/applications/{quaver,minim}.desktop
+#   ~/.local/share/icons/hicolor/scalable/apps/{quaver,minim}.svg
 #   ~/.config/mimeapps.list                    (default-application entries)
 #
 # Run from anywhere — paths resolve relative to the suite root. Safe to
@@ -33,14 +34,14 @@ for app in quaver minim; do
     echo "Linked launcher: ${BIN_DIR}/${app}"
 done
 
-# --- Icon (the desktop entry says Icon=minim) ---
-cp "${PROJECT_ROOT}/minim/minim/resources/minim.svg" "${ICON_DIR}/minim.svg"
-echo "Wrote icon: ${ICON_DIR}/minim.svg"
-
-# --- .desktop entry: substitute the absolute project root into Exec ---
+# --- Icons and .desktop entries (Exec gets the absolute project root) ---
+for app in quaver minim; do
+    cp "${PROJECT_ROOT}/${app}/${app}/resources/${app}.svg" "${ICON_DIR}/${app}.svg"
+    echo "Wrote icon: ${ICON_DIR}/${app}.svg"
+    sed "s|@PROJECT_ROOT@|${PROJECT_ROOT}|g" "${SCRIPT_DIR}/${app}.desktop.in" > "${APPS_DIR}/${app}.desktop"
+    echo "Wrote desktop entry: ${APPS_DIR}/${app}.desktop"
+done
 DESKTOP_FILE="${APPS_DIR}/minim.desktop"
-sed "s|@PROJECT_ROOT@|${PROJECT_ROOT}|g" "${SCRIPT_DIR}/minim.desktop.in" > "${DESKTOP_FILE}"
-echo "Wrote desktop entry: ${DESKTOP_FILE}"
 
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "${APPS_DIR}"

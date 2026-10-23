@@ -88,8 +88,8 @@ in `~/.config/quaver/` and `~/.config/minim/`, and Quaver's library database in
 Preferences.
 
 `desktop/install.sh` links `bin/quaver` and `bin/minim` into `~/bin`,
-installs Minim's desktop entry and icon, and makes Minim the default player
-for the audio and video types it declares. It needs no root and is safe to
+installs both apps' desktop entries and icons, and makes Minim the default
+player for the audio and video types it declares. It needs no root and is safe to
 re-run, including after moving the checkout.
 
 Every package above comes from Fedora's own repositories, which decode
