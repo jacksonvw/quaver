@@ -106,6 +106,8 @@ The tests run headless, on Qt's offscreen platform, in a couple of seconds:
 
 ![Quaver's Now Playing view: the cover over a blur of itself, with the spectrum](docs/screenshots/quaver-now-playing.png)
 
+![Auto-DJ carrying on after an album ends, with its settings open](docs/screenshots/quaver-autodj.png)
+
 ![Minim playing a video, with the queue hidden](docs/screenshots/minim.png)
 
 ![Minim playing an album folder](docs/screenshots/minim-music.png)
