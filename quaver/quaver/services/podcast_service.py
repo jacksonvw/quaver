@@ -258,6 +258,7 @@ class PodcastService(QObject):
         # Position save timer (10 seconds).
         self._position_save_timer = QTimer(self)
         self._position_save_timer.setInterval(10_000)
+        self._position_save_timer.timeout.connect(self._save_position)
 
         # Current podcast episode being played.
         self._current_episode_id: int | None = None
@@ -397,11 +398,6 @@ class PodcastService(QObject):
         """Start saving playback position every 10 seconds."""
         self._current_episode_id = episode_id
         self._get_position = get_position_ms
-
-        self._position_save_timer.timeout.disconnect() if self._position_save_timer.receivers(
-            self._position_save_timer.timeout
-        ) else None
-        self._position_save_timer.timeout.connect(self._save_position)
         self._position_save_timer.start()
 
     def stop_tracking_position(self, save_final: bool = True) -> None:
