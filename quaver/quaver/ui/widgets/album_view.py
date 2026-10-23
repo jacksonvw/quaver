@@ -103,9 +103,13 @@ def _format_album_duration(ms: int) -> str:
         return ""
     total_mins = round(ms / 60_000)
     if total_mins < 60:
-        return f"{total_mins} mins"
+        return _mins(total_mins)
     h, m = divmod(total_mins, 60)
-    return f"{h} hr {m} mins" if m else f"{h} hr"
+    return f"{h} hr {_mins(m)}" if m else f"{h} hr"
+
+
+def _mins(n: int) -> str:
+    return f"{n} min" if n == 1 else f"{n} mins"
 
 
 # ── Art loading (via shared cache) ───────────────────────────────────

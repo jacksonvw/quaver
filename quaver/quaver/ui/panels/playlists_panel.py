@@ -404,7 +404,10 @@ class PlaylistsPanel(QWidget):
         albums = len({t.album for t in tracks if t.album})
         total_ms = sum(t.duration_ms or 0 for t in tracks)
         dur = _ms_to_hhmmss(total_ms)
-        self._header_stats.setText(f"{n} tracks / {albums} albums, duration: {dur}")
+        self._header_stats.setText(
+            f"{n} {'track' if n == 1 else 'tracks'} / "
+            f"{albums} {'album' if albums == 1 else 'albums'}, duration: {dur}"
+        )
 
     # ------------------------------------------------------------------
     # Playlist list actions
