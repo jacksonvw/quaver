@@ -491,7 +491,9 @@ class SourcesDialog(QDialog):
     # ------------------------------------------------------------------
 
     def _save(self) -> None:
-        # Ask for tab assignment for any sources not yet in a tab.
+        # Ask for tab assignment for any sources not yet in a tab.  With no
+        # tabs configured, the default Library tab shows every source, so
+        # there is nothing to ask.
         unassigned = []
         all_assigned_paths = set()
         for tab in self._config.library_tabs:
@@ -500,7 +502,7 @@ class SourcesDialog(QDialog):
             if src.path not in all_assigned_paths:
                 unassigned.append(src)
 
-        if unassigned:
+        if unassigned and self._config.library_tabs:
             dlg = _TabAssignmentDialog(
                 unassigned, self._config.library_tabs, parent=self,
             )
