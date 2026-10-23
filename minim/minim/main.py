@@ -58,7 +58,9 @@ def main() -> None:
 
     icon_path = Path(__file__).parent / "resources" / "minim.svg"
     if icon_path.is_file():
-        app.setWindowIcon(QIcon(str(icon_path)))
+        # A theme name lets KWin render the icon itself.  Without one, Qt sends
+        # pixel buffers whose alpha KWin misreads, blackening anti-aliased edges.
+        app.setWindowIcon(QIcon.fromTheme("minim", QIcon(str(icon_path))))
 
     # Everything past argv[0] is a path to play.
     initial_paths = sys.argv[1:]

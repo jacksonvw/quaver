@@ -17,10 +17,13 @@ def main() -> None:
 
     app = QApplication(sys.argv)
     app.setApplicationName("Quaver")
+    app.setDesktopFileName("quaver")
 
     icon_path = Path(__file__).parent / "resources" / "quaver.svg"
     if icon_path.is_file():
-        app.setWindowIcon(QIcon(str(icon_path)))
+    # A theme name lets KWin render the icon itself.  Without one, Qt sends
+    # pixel buffers whose alpha KWin misreads, blackening anti-aliased edges.
+        app.setWindowIcon(QIcon.fromTheme("quaver", QIcon(str(icon_path))))
 
     try:
         window = MainWindow()
