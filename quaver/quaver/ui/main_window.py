@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from media_core.core.blur import set_blur_behind
+from media_core.services.tag_reader import TagReader
 
 from quaver.core.audio import PlaybackState
 from quaver.core.config import load_config, save_config, LibraryTabConfig
@@ -121,6 +122,11 @@ class MainWindow(QMainWindow):
         # Core services.
         self._db = LibraryDB()
         self._player = PlayerService(self._db)
+        # Reads tags for tracks built from bare file paths (the Files tab,
+        # File → Open).  Connected first, so the track about to play is
+        # read before MPRIS or Now Playing show it.
+        self._tag_reader = TagReader(self)
+        self._player.track_changed.connect(self._tag_reader.ensure)
         self._library_service = LibraryService(self._db)
         self._mpris2 = Mpris2Service(self._player) if Mpris2Service else None
         self._podcast_service = PodcastService(self._db)
@@ -493,6 +499,7 @@ class MainWindow(QMainWindow):
 
         # Global queue → player.
         self._queue_widget.track_activated.connect(self._on_queue_track_activated)
+        self._tag_reader.tracks_updated.connect(self._queue_widget.refresh_tracks)
         self._queue_widget.remove_requested.connect(self._player.remove_from_queue)
         self._queue_widget.move_requested.connect(self._player.move_in_queue)
         self._queue_widget.move_batch_requested.connect(self._player.move_batch_in_queue)
@@ -802,16 +809,25 @@ class MainWindow(QMainWindow):
                     fingerprint=None,
                 )
             tracks.append(t)
+        self._read_file_tags(tracks, replace=True)
         self._player.play_tracks(tracks, start_index=0)
+
+    def _read_file_tags(self, tracks: list[Track], *, replace: bool = False) -> None:
+        """Fill in tags, in the background, for tracks not in the library."""
+        if replace:
+            self._tag_reader.cancel()  # the old queue is being replaced
+        self._tag_reader.queue([t for t in tracks if t.id < 0])
 
     @Slot(list, int)
     def _on_play_album(self, tracks: list[Track], start_index: int) -> None:
         """Double-click a track: replace queue with album, play from index."""
+        self._read_file_tags(tracks, replace=True)
         self._player.play_tracks(tracks, start_index=start_index)
 
     @Slot(list)
     def _on_add_to_queue(self, tracks: list[Track]) -> None:
         """Append tracks to the global queue."""
+        self._read_file_tags(tracks)
         for t in tracks:
             self._player.enqueue(t)
 
