@@ -14,7 +14,6 @@ through :func:`minim.tracks.tracks_from_paths` and replace the queue.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 from PySide6.QtCore import QSettings, QTimer, Qt, Slot
 from PySide6.QtGui import QAction, QColor, QKeySequence, QPainter
@@ -359,13 +358,7 @@ class MainWindow(QMainWindow):
 
     @Slot(object)
     def _on_track_changed(self, track: Track | None) -> None:
-        if track:
-            label = track.title or Path(track.filepath).name
-            if track.artist:
-                label = f"{track.artist} — {label}"
-            self._transport.set_track_label(label)
-        else:
-            self._transport.set_track_label("No file loaded")
+        self._transport.show_track(track)
 
         # Hand the engine to the panel + queue for video stream menus.
         is_video = track is not None and track.media_type in (

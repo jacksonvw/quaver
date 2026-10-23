@@ -673,10 +673,7 @@ class MainWindow(QMainWindow):
         ):
             self._stop_podcast_tracking(save_final=False)
 
-        if track:
-            self._transport.set_track_label(f"{track.artist} — {track.title}")
-        else:
-            self._transport.set_track_label("No file loaded")
+        self._transport.show_track(track)
         # Ensure engine reference is set for video/YouTube tracks before update_track.
         poster_path = ""
         plot = ""

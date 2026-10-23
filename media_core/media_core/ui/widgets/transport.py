@@ -7,6 +7,8 @@ Layout (MusicBee-style, flush full-width rows):
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -21,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from media_core.core.audio import PlaybackState
+from media_core.core.track import Track
 from media_core.services.player_service import RepeatMode
 from media_core.ui.widgets.icons import (
     icon_fullscreen,
@@ -300,6 +303,14 @@ class TransportWidget(QWidget):
 
     def set_track_label(self, text: str) -> None:
         self._track_label.setText(text)
+
+    def show_track(self, track: Track | None) -> None:
+        """Label the transport "Artist — Title", or just the title."""
+        if track is None:
+            self.set_track_label("No file loaded")
+            return
+        title = track.title or Path(track.filepath).name
+        self.set_track_label(f"{track.artist} — {title}" if track.artist else title)
 
     def show_progress(self, message: str, done: int, total: int) -> None:
         """Show progress bar with message and numeric progress."""
