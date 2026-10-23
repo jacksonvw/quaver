@@ -101,6 +101,7 @@ class AudioEngine:
         # the about-to-finish callback.
         self._next_uri: str | None = None
         self._gapless_pending = False
+        self._last_duration_ms = 0  # this track's, held through a gapless switch
 
         # playbin3 stream tracking.
         self._stream_collection: Gst.StreamCollection | None = None
@@ -200,8 +201,13 @@ class AudioEngine:
 
     def get_duration_ms(self) -> int:
         """Return track duration in milliseconds, or 0."""
+        # Once about-to-finish queues the next file, playbin3 answers with
+        # that file's duration while this one is still playing out.
+        if self._gapless_pending and self._last_duration_ms:
+            return self._last_duration_ms
         ok, dur = self._playbin.query_duration(Gst.Format.TIME)
-        return dur // Gst.MSECOND if ok else 0
+        self._last_duration_ms = dur // Gst.MSECOND if ok else 0
+        return self._last_duration_ms
 
     def set_playback_rate(self, rate: float) -> None:
         """Set playback speed (0.5–2.0). Uses GStreamer seek with rate."""
@@ -846,6 +852,7 @@ class AudioEngine:
         self._playbin.get_state(5 * Gst.SECOND)
         self._current_uri = None
         self._gapless_pending = False
+        self._last_duration_ms = 0
 
     def _set_state(self, new_state: PlaybackState) -> None:
         self._state = new_state
