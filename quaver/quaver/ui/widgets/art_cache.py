@@ -25,6 +25,7 @@ from quaver.core.paths import image_dir
 from quaver.ui.widgets.embedded_art_cache import (
     _cache,
     _get_pool,
+    _loading,
     _is_network_path,
     _result,
     _scale_to_pixmap,
@@ -98,6 +99,7 @@ class _PosterLoadTask(QRunnable):
                 art = extract_art(self._filepath)
             pm = _scale_to_pixmap(art, self._size)
             _cache[key] = pm
+        _loading.discard(key)
         _result.ready.emit(self._filepath, self._size, pm)
 
 
@@ -127,7 +129,9 @@ def get_thumbnail(
     if key in _cache:
         del _cache[key]
     # Queue async load with poster fallback.
-    _get_pool().start(_PosterLoadTask(filepath, size, poster_path))
+    if key not in _loading:
+        _loading.add(key)
+        _get_pool().start(_PosterLoadTask(filepath, size, poster_path))
     return None
 
 

@@ -27,6 +27,11 @@ from media_core.core.network import is_network_path as _is_network_path
 # Global cache: (filepath, size) → scaled QPixmap | None.
 _cache: dict[tuple[str, int], QPixmap | None] = {}
 
+# Keys with a load queued or running.  Every queue reload asks for every
+# row's thumbnail again; without this, each ask while a load was still in
+# flight started a duplicate (quadratic work for a big folder drop).
+_loading: set[tuple[str, int]] = set()
+
 # Thread pool shared across all art loading.
 _pool: QThreadPool | None = None
 
@@ -130,6 +135,7 @@ class _LoadTask(QRunnable):
                 )
                 pm = _scale_to_pixmap(art, self._size)
             _cache[key] = pm
+        _loading.discard(key)
         _result.ready.emit(self._filepath, self._size, pm)
 
 
@@ -150,7 +156,9 @@ def get_thumbnail(
     key = (filepath, size)
     if key in _cache:
         return _cache[key]
-    _get_pool().start(_LoadTask(filepath, size))
+    if key not in _loading:
+        _loading.add(key)
+        _get_pool().start(_LoadTask(filepath, size))
     return None
 
 

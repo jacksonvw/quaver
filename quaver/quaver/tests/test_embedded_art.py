@@ -92,3 +92,27 @@ def test_embedded_art_cache_ignores_poster_path() -> None:
     from quaver.ui.widgets.embedded_art_cache import get_thumbnail_sync
     assert get_thumbnail_sync("/nonexistent.mp3", 64) is None
     assert get_thumbnail_sync("/nonexistent.mp3", 64, poster_path="x") is None
+
+
+def test_thumbnail_requests_while_loading_start_one_load(monkeypatch) -> None:
+    """Queue reloads ask for every row's art again; asks that arrive while a
+    load is in flight must not start duplicates."""
+    import media_core.ui.widgets.embedded_art_cache as cache
+
+    started = []
+    monkeypatch.setattr(cache, "_get_pool",
+                        lambda: type("Pool", (), {"start": lambda self, t: started.append(t)})())
+    key = ("/nowhere/song.flac", 48)
+    cache._cache.pop(key, None)
+    cache._loading.discard(key)
+
+    assert cache.get_thumbnail(*key) is None
+    assert cache.get_thumbnail(*key) is None
+    assert len(started) == 1
+
+    started[0].run()  # finishes: no art found, cached as None
+    assert key not in cache._loading
+    assert cache.get_thumbnail(*key) is None
+    assert len(started) == 1
+    cache._cache.pop(key, None)
+
