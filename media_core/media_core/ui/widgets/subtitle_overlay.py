@@ -17,7 +17,7 @@ import html
 import logging
 import re
 
-from PySide6.QtCore import Qt, QRectF, QTimer
+from PySide6.QtCore import QEvent, Qt, QRectF, QTimer
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -86,6 +86,18 @@ class SubtitleOverlay(QWidget):
         # Transparent, mouse-transparent.
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+
+        # Cover the parent at every size it takes.  libass renders into this
+        # widget's size, and a video page in a stacked layout only gets its
+        # real size once it is the current page.
+        if parent is not None:
+            parent.installEventFilter(self)
+            self.setGeometry(parent.rect())
+
+    def eventFilter(self, obj, event) -> bool:
+        if obj is self.parentWidget() and event.type() == QEvent.Type.Resize:
+            self.setGeometry(obj.rect())
+        return super().eventFilter(obj, event)
 
     # ------------------------------------------------------------------
     # Public API

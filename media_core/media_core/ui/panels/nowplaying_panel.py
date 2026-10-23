@@ -619,7 +619,6 @@ class NowPlayingPanel(QWidget):
             # Respect video display mode (same as YouTube toggle).
             if self._video_mode == "video" and self._current_engine:
                 self._video_surface.start_rendering(self._current_engine)
-                self._subtitle_overlay.setGeometry(self._video_page.rect())
                 self._subtitle_overlay.start(self._current_engine, self._video_surface)
                 self._subtitle_overlay.raise_()
                 self._stack.setCurrentIndex(1)
@@ -664,7 +663,6 @@ class NowPlayingPanel(QWidget):
         if self._video_mode != "video":
             return
         self._video_surface.start_rendering(self._current_engine)
-        self._subtitle_overlay.setGeometry(self._video_page.rect())
         self._subtitle_overlay.start(self._current_engine, self._video_surface)
         self._subtitle_overlay.raise_()
         self._stack.setCurrentIndex(1)  # Switch to video page.
@@ -770,8 +768,6 @@ class NowPlayingPanel(QWidget):
         super().resizeEvent(event)
         self._bg_scaled = None  # Invalidate — panel size changed.
         self._rescale_art()
-        # Keep subtitle overlay covering the full video page.
-        self._subtitle_overlay.setGeometry(self._video_page.rect())
 
     # ------------------------------------------------------------------
     # Background painting
