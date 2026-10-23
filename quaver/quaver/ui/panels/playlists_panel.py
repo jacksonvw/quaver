@@ -38,6 +38,7 @@ from quaver.ui.widgets.delegates import (
     DropIndicatorMixin,
     HoverTrackingMixin,
     SimpleItemDelegate,
+    TableSelectionMixin,
 )
 
 
@@ -183,7 +184,7 @@ class _PlaylistTrackModel(QAbstractTableModel):
 # ── Playlist track table view (supports internal reorder + drag out) ─
 
 
-class _PlaylistTableView(DropIndicatorMixin, HoverTrackingMixin, QTableView):
+class _PlaylistTableView(DropIndicatorMixin, TableSelectionMixin, HoverTrackingMixin, QTableView):
     """QTableView with consistent selection/hover and internal reorder."""
 
     reordered = Signal(int, int)        # from_row, to_row

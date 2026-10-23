@@ -10,4 +10,5 @@ from media_core.ui.widgets.delegates import (  # noqa: F401
     DropIndicatorMixin,
     HoverTrackingMixin,
     SimpleItemDelegate,
+    TableSelectionMixin,
 )

@@ -40,7 +40,9 @@ from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QStyleOptionViewItem
 
 from quaver.core.library import EPISODE_IDS_MIME
-from quaver.ui.widgets.delegates import ConsistentItemDelegate, HoverTrackingMixin, SimpleItemDelegate
+from quaver.ui.widgets.delegates import (
+    ConsistentItemDelegate, HoverTrackingMixin, SimpleItemDelegate, TableSelectionMixin,
+)
 from quaver.core.podcast import Episode, Podcast, artwork_path
 
 _FEED_ART_SIZE = 40
@@ -321,7 +323,7 @@ class _FeedListWidget(HoverTrackingMixin, QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
 
-class _EpisodeTableView(HoverTrackingMixin, QTableView):
+class _EpisodeTableView(TableSelectionMixin, HoverTrackingMixin, QTableView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._init_hover_tracking()

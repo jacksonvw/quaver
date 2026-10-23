@@ -43,7 +43,9 @@ from PySide6.QtWidgets import QStyleOptionViewItem
 
 from quaver.core.library import VIDEO_IDS_MIME
 from quaver.core.youtube import Channel, Video, _THUMB_CACHE_DIR
-from quaver.ui.widgets.delegates import ConsistentItemDelegate, HoverTrackingMixin, SimpleItemDelegate
+from quaver.ui.widgets.delegates import (
+    ConsistentItemDelegate, HoverTrackingMixin, SimpleItemDelegate, TableSelectionMixin,
+)
 
 _CHAN_ART_SIZE = 40
 _CHAN_ROW_HEIGHT = 52
@@ -344,7 +346,7 @@ class _ChannelListWidget(HoverTrackingMixin, QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
 
-class _VideoTableView(HoverTrackingMixin, QTableView):
+class _VideoTableView(TableSelectionMixin, HoverTrackingMixin, QTableView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._init_hover_tracking()

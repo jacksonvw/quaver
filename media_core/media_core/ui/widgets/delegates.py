@@ -16,12 +16,16 @@ Usage:
         def __init__(self, parent=None):
             super().__init__(parent)
             self._init_hover_tracking()
+
+    # Table — also mix in TableSelectionMixin, or the style fills selected
+    # rows with the accent colour underneath the delegate.
+    class MyTable(TableSelectionMixin, HoverTrackingMixin, QTableView): ...
 """
 
 from __future__ import annotations
 
-from PySide6.QtCore import QModelIndex, QRect
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtCore import QModelIndex, QRect, Qt
+from PySide6.QtGui import QColor, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QStyle,
@@ -144,6 +148,25 @@ class HoverTrackingMixin:
         rect.setLeft(0)
         rect.setRight(self.viewport().width())
         self.viewport().update(rect)
+
+
+# -- Table selection mixin --------------------------------------------
+
+
+class TableSelectionMixin:
+    """Mixin for QTableView subclasses whose delegate paints selection.
+
+    Before it calls the delegate, QTableView has the style fill each
+    selected row with the palette's Highlight (the accent colour), which
+    ``ConsistentItemDelegate`` can't strip.  Clearing Highlight in the item
+    options leaves ``SELECTION_BG`` as the only fill.  Tables only: list
+    views don't paint that fill, and the queue's delegate reads Highlight
+    for its now-playing accent.
+    """
+
+    def initViewItemOption(self, option: QStyleOptionViewItem) -> None:
+        super().initViewItemOption(option)
+        option.palette.setColor(QPalette.ColorRole.Highlight, QColor(Qt.GlobalColor.transparent))
 
 
 # -- Drop indicator painting mixin ------------------------------------
