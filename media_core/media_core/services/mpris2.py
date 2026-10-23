@@ -226,7 +226,9 @@ class Mpris2Service(dbus.service.Object):
             meta["mpris:length"] = dbus.Int64(track.duration_ms * 1000)
         if track.filepath:
             from pathlib import Path
-            meta["xesam:url"] = dbus.String(Path(track.filepath).as_uri())
+            # Streamed podcast episodes and YouTube videos already carry a URL.
+            url = track.filepath if "://" in track.filepath else Path(track.filepath).as_uri()
+            meta["xesam:url"] = dbus.String(url)
         return meta
 
     # ------------------------------------------------------------------
