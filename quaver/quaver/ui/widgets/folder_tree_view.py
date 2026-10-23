@@ -55,6 +55,11 @@ from media_core.core.media_exts import (
 )
 from media_core.core.track import Track
 from media_core.ui.widgets import embedded_art_cache as _audio_art
+from media_core.ui.widgets.delegates import (
+    HoverTrackingMixin,
+    SimpleItemDelegate,
+    TableSelectionMixin,
+)
 
 
 _THUMB_SIZE = 128
@@ -198,6 +203,24 @@ def _walk_playable(path: Path, max_files: int = 5000) -> list[Path]:
 
 
 # ── File grid model ──────────────────────────────────────────────────
+
+
+class _FolderTree(TableSelectionMixin, HoverTrackingMixin, QTreeWidget):
+    """Folder tree that selects and hovers rows like every other list."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._init_hover_tracking()
+        self.setItemDelegate(SimpleItemDelegate(self))
+
+
+class _FileGrid(HoverTrackingMixin, QListView):
+    """Thumbnail grid that selects and hovers tiles like the lists do."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._init_hover_tracking()
+        self.setItemDelegate(SimpleItemDelegate(self))
 
 
 class _FileGridModel(QAbstractListModel):
@@ -360,7 +383,7 @@ class FolderTreeView(QWidget):
         layout.addWidget(self._splitter, stretch=1)
 
         # ── Left: folder tree (dirs only, lazy) ──
-        self._tree = QTreeWidget()
+        self._tree = _FolderTree()
         self._tree.setHeaderHidden(True)
         self._tree.setUniformRowHeights(True)
         self._tree.setSelectionMode(
@@ -378,7 +401,7 @@ class FolderTreeView(QWidget):
 
         # ── Right: thumbnail grid ──
         self._file_model = _FileGridModel(self)
-        self._file_grid = QListView()
+        self._file_grid = _FileGrid()
         self._file_grid.setModel(self._file_model)
         self._file_grid.setViewMode(QListView.ViewMode.IconMode)
         self._file_grid.setIconSize(QSize(_THUMB_SIZE, _THUMB_SIZE))

@@ -154,14 +154,15 @@ class HoverTrackingMixin:
 
 
 class TableSelectionMixin:
-    """Mixin for QTableView subclasses whose delegate paints selection.
+    """Mixin for QTableView and QTreeView subclasses whose delegate paints
+    selection.
 
-    Before it calls the delegate, QTableView has the style fill each
-    selected row with the palette's Highlight (the accent colour), which
-    ``ConsistentItemDelegate`` can't strip.  Clearing Highlight in the item
-    options leaves ``SELECTION_BG`` as the only fill.  Tables only: list
-    views don't paint that fill, and the queue's delegate reads Highlight
-    for its now-playing accent.
+    Before it calls the delegate, a table or tree view has the style fill
+    each selected row with the palette's Highlight (the accent colour),
+    which ``ConsistentItemDelegate`` can't strip.  Clearing Highlight in the
+    item options leaves ``SELECTION_BG`` as the only fill.  Not for list
+    views: they don't paint that fill, and the queue's delegate reads
+    Highlight for its now-playing accent.
     """
 
     def initViewItemOption(self, option: QStyleOptionViewItem) -> None:
