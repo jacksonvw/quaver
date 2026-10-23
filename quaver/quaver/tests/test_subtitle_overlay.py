@@ -34,3 +34,43 @@ def test_overlay_covers_a_stacked_page_once_it_shows(qapp) -> None:
     assert overlay.geometry() == page.rect()
     stack.close()
 
+
+class _Engine:
+    """Just what SubtitleOverlay polls."""
+
+    def __init__(self) -> None:
+        self.serial = 0
+        self.text = None
+
+    def get_subtitle_flags(self) -> bool:
+        return True
+
+    def get_subtitle_serial(self) -> int:
+        return self.serial
+
+    def pull_ass_chunks(self) -> list:
+        return []
+
+    def get_ass_header(self):
+        return None
+
+    def get_position_ms(self) -> int:
+        return 8000
+
+    def pull_subtitle_text(self):
+        text, self.text = self.text, None
+        return text
+
+
+def test_switching_from_ass_to_srt_shows_the_srt(qapp) -> None:
+    overlay = SubtitleOverlay()
+    engine = _Engine()
+    overlay.start(engine, None)
+    overlay._libass_track_ready = True  # an ASS track was rendering
+
+    engine.serial += 1  # the menu chose the SRT track
+    engine.text = ("Italic via SRT tags", 2000)
+    overlay._poll()
+    assert not overlay._libass_track_ready
+    assert overlay._current_text == "Italic via SRT tags"
+    overlay.stop()

@@ -125,3 +125,20 @@ def test_ass_subtitles_count_as_decodable(engine) -> None:
         ("t1", "subpicture/x-pgs", Gst.StreamType.TEXT),
     )
     assert engine.get_subtitle_track_support() == [True, True]
+
+
+def test_subtitle_serial_changes_only_with_the_stream(engine) -> None:
+    """The overlay resets on the serial; off and on again must not reset."""
+    engine._stream_collection = _video_audio_text()
+    engine._selected_streams = {"v0", "a0", "t0"}
+    engine._sub_stream_id = "t0"  # playbin3's own pick, from STREAMS_SELECTED
+    engine._select_streams = lambda ids: None
+    serial = engine.get_subtitle_serial()
+
+    engine.set_subtitle_enabled(False)
+    engine.set_subtitle_enabled(True)  # back on: track 0 again
+    engine.set_current_subtitle(0)
+    assert engine.get_subtitle_serial() == serial
+
+    engine.set_current_subtitle(1)
+    assert engine.get_subtitle_serial() == serial + 1

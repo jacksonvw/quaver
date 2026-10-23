@@ -81,6 +81,8 @@ class AudioEngine:
         self._ass_header_extracted = False
         self._subtitles_enabled: bool = True
         self._current_sub_index: int = -1  # local tracking (authoritative)
+        self._sub_serial = 0  # bumped when the subtitle stream changes
+        self._sub_stream_id: str | None = None  # the stream it was bumped for
         self._setup_text_sink()
 
         self._state = PlaybackState.STOPPED
@@ -356,6 +358,15 @@ class AudioEngine:
             return -1
         return self._current_sub_index
 
+    def get_subtitle_serial(self) -> int:
+        """A number that changes when a different subtitle stream is chosen.
+
+        The overlay compares it between polls to drop a replaced stream's
+        rendered state.  Turning subtitles off and on again, or choosing
+        the stream playbin3 picked itself, doesn't change it.
+        """
+        return self._sub_serial
+
     def set_current_subtitle(self, index: int) -> None:
         """Switch to subtitle stream *index*.  Implicitly enables subtitles."""
         text_streams = self._streams_by_type(Gst.StreamType.TEXT)
@@ -365,6 +376,11 @@ class AudioEngine:
             return
         self._subtitles_enabled = True
         self._current_sub_index = index
+        if 0 <= index < len(text_streams):
+            stream_id = text_streams[index].get_stream_id()
+            if stream_id != self._sub_stream_id:
+                self._sub_stream_id = stream_id
+                self._sub_serial += 1
         # Reset ASS state for the new track.
         self._ass_header = None
         self._ass_header_extracted = False
@@ -870,6 +886,7 @@ class AudioEngine:
             self._stream_collection = message.parse_stream_collection()
             # Seed selected streams from the collection's initial state.
             self._selected_streams.clear()
+            self._sub_stream_id = None
 
         elif msg_type == Gst.MessageType.STREAMS_SELECTED:
             # parse_streams_selected() returns the WHOLE collection; the
@@ -878,6 +895,12 @@ class AudioEngine:
                 message.streams_selected_get_stream(i).get_stream_id()
                 for i in range(message.streams_selected_get_size())
             }
+            if self._sub_stream_id is None:
+                # playbin3's own pick: choosing it from the menu later
+                # isn't a change of stream.
+                for s in self._streams_by_type(Gst.StreamType.TEXT):
+                    if s.get_stream_id() in self._selected_streams:
+                        self._sub_stream_id = s.get_stream_id()
 
         elif msg_type == Gst.MessageType.STREAM_START:
             # Fires when a new stream actually starts (including gapless).

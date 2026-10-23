@@ -64,6 +64,7 @@ class SubtitleOverlay(QWidget):
         self._libass = LibassRenderer()
         self._libass_track_ready = False
         self._ass_bitmaps: list[SubtitleBitmap] = []
+        self._sub_serial = 0  # the engine's, as of the last poll
 
         # --- QPainter text (SRT/VTT path) ---
         self._current_text: str = ""
@@ -110,6 +111,7 @@ class SubtitleOverlay(QWidget):
         self._current_text = ""
         self._ass_bitmaps = []
         self._libass_track_ready = False
+        self._sub_serial = engine.get_subtitle_serial()
         self._timer.start()
 
     def stop(self) -> None:
@@ -156,6 +158,17 @@ class SubtitleOverlay(QWidget):
     def _poll(self) -> None:
         if not self._engine:
             return
+
+        # A track was chosen: drop the old one.  Its libass events would
+        # otherwise keep rendering and skip the text path for a new SRT.
+        serial = self._engine.get_subtitle_serial()
+        if serial != self._sub_serial:
+            self._sub_serial = serial
+            self._libass_track_ready = False
+            self._ass_bitmaps = []
+            self._current_text = ""
+            self._hide_timer.stop()
+            self.update()
 
         # Immediate off: if subtitles are disabled, clear and stop.
         if not self._engine.get_subtitle_flags():
