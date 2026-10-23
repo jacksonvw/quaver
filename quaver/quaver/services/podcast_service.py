@@ -176,7 +176,7 @@ class _AddPodcastWorker(QThread):
                 _download_artwork(podcast_id, artwork_url)
 
             # Apply config defaults for new podcast.
-            self._pdb.update_settings(
+            self._pdb.update_podcast_settings(
                 podcast_id,
                 auto_download=False,
                 auto_delete_played=False,
