@@ -581,6 +581,12 @@ class LibraryTabWidget(QWidget):
             return
         self._album_view.set_show_genre(show)
 
+    def set_empty_hint(self, text: str) -> None:
+        """Text for an empty album view.  No-op on files tabs."""
+        if self._media_type == "files":
+            return
+        self._album_view.set_empty_hint(text)
+
     def set_engine(self, engine) -> None:
         """Pass-through engine reference for video stream menus.
 

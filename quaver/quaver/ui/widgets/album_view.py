@@ -843,6 +843,7 @@ class _AlbumTableView(QTableView):
     _drag_start_pos = None  # Set on art/title press to enable drag initiation.
     _saved_playlists: list[tuple[int, str, int]] = []  # (id, name, count)
     _engine = None  # GStreamer engine ref, set when a video track is playing.
+    _empty_hint = ""  # Shown centred while the model has no rows.
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -1205,6 +1206,23 @@ class _AlbumTableView(QTableView):
         """Store a reference to the GStreamer engine for stream menus."""
         self._engine = engine
 
+    def set_empty_hint(self, text: str) -> None:
+        self._empty_hint = text
+        self.viewport().update()
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        if not self._empty_hint or self.model() is None or self.model().rowCount():
+            return
+        p = QPainter(self.viewport())
+        p.setPen(self.palette().placeholderText().color())
+        p.drawText(
+            self.viewport().rect().adjusted(32, 32, -32, -32),
+            Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
+            self._empty_hint,
+        )
+        p.end()
+
     def _show_context_menu(self, pos) -> None:
         index = self.indexAt(pos)
         if not index.isValid():
@@ -1467,6 +1485,10 @@ class AlbumView(QWidget):
     def set_playing_track(self, filepath: str | None) -> None:
         """Update the now-playing indicator to highlight *filepath*."""
         self._model.set_playing_filepath(filepath)
+
+    def set_empty_hint(self, text: str) -> None:
+        """Text to show while the view has no albums; empty for none."""
+        self._table.set_empty_hint(text)
 
     def set_engine(self, engine) -> None:
         """Pass the GStreamer engine to the table for stream selection menus."""

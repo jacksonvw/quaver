@@ -54,6 +54,12 @@ from quaver.ui.widgets.library_tab import LibraryTabWidget
 from quaver.ui.widgets.queue_widget import QueueWidget
 from quaver.ui.widgets.transport import TransportWidget
 
+_EMPTY_LIBRARY_HINT = (
+    "Your library is empty.\n\n"
+    "To add a folder of music or videos, open the menu at the top left "
+    "and choose Library → Add Source…"
+)
+
 
 class _QuaverTabBar(QTabBar):
     """Custom tab bar: compact menu tab, tab-0 pinned, optional lock."""
@@ -1774,11 +1780,14 @@ class MainWindow(QMainWindow):
 
     def _apply_library_load(self, results: list, stats: tuple) -> None:
         """Apply loaded tracks to tabs (runs on main thread)."""
+        # Before the first source is added, say where to add one.
+        hint = "" if self._db.get_sources() else _EMPTY_LIBRARY_HINT
         for tab, tracks, posters, vstates, genres, shows in results:
             tab.load_tracks(
                 tracks, poster_paths=posters, video_states=vstates,
                 video_genres=genres, show_data=shows,
             )
+            tab.set_empty_hint(hint)
 
     def _sync_sources_from_config(self) -> None:
         """Ensure DB sources match config. Run once at startup.
