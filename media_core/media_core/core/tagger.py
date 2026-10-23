@@ -94,6 +94,16 @@ def read_tags(path: str | Path) -> TrackTags | None:
 
     duration_ms = int((audio.info.length or 0) * 1000)
     bitrate = getattr(audio.info, "bitrate", 0) or 0
+    if not bitrate and duration_ms:
+        # Opus and some others carry none: average the audio over the file,
+        # leaving out the tags, which can hold a large embedded cover.
+        try:
+            size = path.stat().st_size
+            if hasattr(audio.tags, "write"):  # Vorbis comments
+                size -= len(audio.tags.write())
+            bitrate = round(max(size, 0) * 8000 / duration_ms)
+        except Exception:
+            pass
 
     tags = TrackTags(
         filepath=str(path),

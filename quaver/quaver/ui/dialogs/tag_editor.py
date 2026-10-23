@@ -93,11 +93,11 @@ class TagEditorDialog(QDialog):
         # Info row (read-only).
         if not self._multi:
             t = self._tracks[0]
-            info = QLabel(
-                f"Format: {t.format}  |  "
-                f"Bitrate: {t.bitrate // 1000}kbps  |  "
-                f"Path: {t.filepath}"
-            )
+            parts = [f"Format: {t.format}"]
+            if t.bitrate:  # 0 = unknown
+                parts.append(f"Bitrate: {t.bitrate // 1000}kbps")
+            parts.append(f"Path: {t.filepath}")
+            info = QLabel("  |  ".join(parts))
             info.setWordWrap(True)
             info.setStyleSheet("color: #666; font-size: 10px; margin-top: 8px;")
             layout.addWidget(info)
