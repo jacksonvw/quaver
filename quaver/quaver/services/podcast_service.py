@@ -459,6 +459,12 @@ class PodcastService(QObject):
     def get_episode(self, episode_id: int) -> Episode | None:
         return self._pdb.get_episode(episode_id)
 
+    def get_podcast(self, podcast_id: int) -> Podcast | None:
+        return self._pdb.get_podcast(podcast_id)
+
+    def podcast_ids_for_sources(self, sources: list[str]) -> dict[str, int]:
+        return self._pdb.podcast_ids_for_sources(sources)
+
     def update_settings(
         self,
         podcast_id: int,

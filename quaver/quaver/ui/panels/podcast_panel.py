@@ -41,7 +41,7 @@ from PySide6.QtWidgets import QStyleOptionViewItem
 
 from quaver.core.library import EPISODE_IDS_MIME
 from quaver.ui.widgets.delegates import ConsistentItemDelegate, HoverTrackingMixin, SimpleItemDelegate
-from quaver.core.podcast import Episode, Podcast, _ART_CACHE_DIR
+from quaver.core.podcast import Episode, Podcast, artwork_path
 
 _FEED_ART_SIZE = 40
 _FEED_ROW_HEIGHT = 52
@@ -490,17 +490,15 @@ class PodcastPanel(QWidget):
 
     def _load_feed_art(self, podcast_id: int) -> QPixmap | None:
         """Load cached podcast artwork from disk."""
-        for ext in (".jpg", ".png"):
-            path = _ART_CACHE_DIR / f"{podcast_id}{ext}"
-            if path.exists():
-                pm = QPixmap()
-                if pm.load(str(path)):
-                    return pm.scaled(
-                        _FEED_ART_SIZE, _FEED_ART_SIZE,
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-        return None
+        path = artwork_path(podcast_id)
+        pm = QPixmap()
+        if path is None or not pm.load(str(path)):
+            return None
+        return pm.scaled(
+            _FEED_ART_SIZE, _FEED_ART_SIZE,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
 
     _PAGE_SIZE = 100
     _loaded_count: int = 0

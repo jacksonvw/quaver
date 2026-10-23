@@ -633,7 +633,7 @@ class NowPlayingPanel(QWidget):
         else:
             self._current_video_url = None
             self._stop_video()
-            self._load_art(track.filepath)
+            self._load_art(track.filepath, poster_path=poster_path)
 
     def _load_youtube_thumbnail(self, video_id: str) -> None:
         """Load a YouTube video thumbnail as the art display."""

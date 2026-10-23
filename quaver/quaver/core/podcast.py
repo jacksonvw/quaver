@@ -23,6 +23,15 @@ _PODCAST_DIR = data_dir() / "podcasts"
 _ART_CACHE_DIR = image_dir() / "podcast_art"
 
 
+def artwork_path(podcast_id: int) -> Path | None:
+    """The podcast's cached artwork file, once it has been downloaded."""
+    for ext in (".jpg", ".png"):
+        path = _ART_CACHE_DIR / f"{podcast_id}{ext}"
+        if path.is_file():
+            return path
+    return None
+
+
 @dataclass
 class Podcast:
     id: int
@@ -199,6 +208,25 @@ class PodcastDB:
             "SELECT * FROM podcast_episodes WHERE id = ?", (episode_id,)
         ).fetchone()
         return Episode(**dict(row)) if row else None
+
+    def podcast_ids_for_sources(self, sources: list[str]) -> dict[str, int]:
+        """Map episode URLs, or the files they were downloaded to, to their podcast."""
+        conn = self._conn()
+        found: dict[str, int] = {}
+        unique = list(dict.fromkeys(sources))
+        for i in range(0, len(unique), 400):
+            chunk = unique[i:i + 400]
+            marks = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                "SELECT url, local_path, podcast_id FROM podcast_episodes "
+                f"WHERE url IN ({marks}) OR local_path IN ({marks})",
+                chunk + chunk,
+            ).fetchall()
+            for row in rows:
+                found[row["url"]] = row["podcast_id"]
+                if row["local_path"]:
+                    found[row["local_path"]] = row["podcast_id"]
+        return {s: found[s] for s in unique if s in found}
 
     def set_episode_downloaded(
         self, episode_id: int, local_path: str

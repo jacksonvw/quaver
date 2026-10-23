@@ -27,6 +27,7 @@ from media_core.core.blur import set_blur_behind
 from quaver.core.audio import PlaybackState
 from quaver.core.config import load_config, save_config, LibraryTabConfig
 from quaver.core.library import LibraryDB, Track
+from quaver.core.podcast import artwork_path as podcast_artwork_path
 from quaver.core.replaygain import RGMode
 from quaver.services.library_service import LibraryService
 try:
@@ -686,6 +687,9 @@ class MainWindow(QMainWindow):
                     genre = vm.get("genre") or ""
                     resume_ms = vm.get("watched_position_ms") or 0
                     watched = bool(vm.get("watched"))
+        elif track and track.id < 0 and not is_youtube:
+            # A podcast episode shows its show's artwork.
+            poster_path = self._episode_art([track.filepath]).get(track.filepath, "")
         self._nowplaying_panel.update_track(
             track, poster_path=poster_path, plot=plot, genre=genre,
             watched=watched,
@@ -722,6 +726,14 @@ class MainWindow(QMainWindow):
         if video_fps:
             all_posters = self._db.get_poster_paths()
             posters.update({fp: all_posters[fp] for fp in video_fps if fp in all_posters})
+        # Podcast episodes: the show's artwork.  Matched by source rather
+        # than genre, which a queue restored from QSettings doesn't carry.
+        transient_fps = [
+            t.filepath for t in queue
+            if t.id < 0 and not t.filepath.startswith("youtube://")
+        ]
+        if transient_fps:
+            posters.update(self._episode_art(transient_fps))
         # YouTube tracks: thumbnail URLs (predictable pattern from video ID).
         for t in queue:
             if t.filepath.startswith("youtube://"):
@@ -988,15 +1000,7 @@ class MainWindow(QMainWindow):
                     self._queued_episode_urls[source] = eid
             if not source:
                 continue
-            t = Track(
-                id=-1, filepath=source, title=ep.title, artist="Podcast",
-                album="", album_artist="", year=None, genre="Podcast",
-                track_number=None, disc_number=None,
-                duration_ms=ep.duration_ms, bitrate=0, format="",
-                replay_gain_track=None, replay_gain_album=None,
-                play_count=0, last_played=None, date_added="", rating=0,
-                fingerprint=None,
-            )
+            t = self._episode_track(ep, source)
             tracks.append(t)
         if tracks:
             self._player.insert_tracks(tracks, insert_position)
@@ -1216,6 +1220,29 @@ class MainWindow(QMainWindow):
             total = self._podcast_service.get_episode_count(pid)
             self._podcast_panel.load_episodes_paginated(eps, total)
 
+    def _episode_track(self, ep, source: str) -> Track:
+        """A transient queue track for a podcast episode, credited to its show."""
+        podcast = self._podcast_service.get_podcast(ep.podcast_id)
+        return Track(
+            id=-1, filepath=source, title=ep.title,
+            artist=podcast.title if podcast else "Podcast",
+            album="", album_artist="", year=None, genre="Podcast",
+            track_number=None, disc_number=None,
+            duration_ms=ep.duration_ms, bitrate=0, format="",
+            replay_gain_track=None, replay_gain_album=None,
+            play_count=0, last_played=None, date_added="", rating=0,
+            fingerprint=None,
+        )
+
+    def _episode_art(self, sources: list[str]) -> dict[str, str]:
+        """Each podcast episode's show artwork, keyed by its queue filepath."""
+        art: dict[str, str] = {}
+        for fp, pid in self._podcast_service.podcast_ids_for_sources(sources).items():
+            path = podcast_artwork_path(pid)
+            if path is not None:
+                art[fp] = str(path)
+        return art
+
     @Slot(int)
     def _on_play_episode(self, episode_id: int) -> None:
         ep = self._podcast_service.get_episode(episode_id)
@@ -1235,15 +1262,7 @@ class MainWindow(QMainWindow):
         self._playing_episode_path = source
 
         # Build a Track and play through the queue (same path as all other content).
-        track = Track(
-            id=-1, filepath=source, title=ep.title, artist="Podcast",
-            album="", album_artist="", year=None, genre="Podcast",
-            track_number=None, disc_number=None,
-            duration_ms=ep.duration_ms, bitrate=0, format="",
-            replay_gain_track=None, replay_gain_album=None,
-            play_count=0, last_played=None, date_added="", rating=0,
-            fingerprint=None,
-        )
+        track = self._episode_track(ep, source)
         self._player.play_tracks([track], start_index=0)
 
         if ep.played_position_ms > 0:
@@ -1270,15 +1289,7 @@ class MainWindow(QMainWindow):
                 self._queued_episode_urls[source] = episode_id
         if not source:
             return
-        track = Track(
-            id=-1, filepath=source, title=ep.title, artist="Podcast",
-            album="", album_artist="", year=None, genre="Podcast",
-            track_number=None, disc_number=None,
-            duration_ms=ep.duration_ms, bitrate=0, format="",
-            replay_gain_track=None, replay_gain_album=None,
-            play_count=0, last_played=None, date_added="", rating=0,
-            fingerprint=None,
-        )
+        track = self._episode_track(ep, source)
         self._player.enqueue(track)
 
     @Slot(int)
@@ -1292,15 +1303,7 @@ class MainWindow(QMainWindow):
             source = ep.local_path if ep.downloaded and ep.local_path else ep.url
             if not source:
                 continue
-            tracks.append(Track(
-                id=-1, filepath=source, title=ep.title, artist="Podcast",
-                album="", album_artist="", year=None, genre="Podcast",
-                track_number=None, disc_number=None,
-                duration_ms=ep.duration_ms, bitrate=0, format="",
-                replay_gain_track=None, replay_gain_album=None,
-                play_count=0, last_played=None, date_added="", rating=0,
-                fingerprint=None,
-            ))
+            tracks.append(self._episode_track(ep, source))
         if tracks:
             self._player.play_tracks(tracks, start_index=0)
 
