@@ -16,6 +16,14 @@ from PySide6.QtWidgets import (
 # 10-band center frequencies (Hz) for GStreamer equalizer-10bands.
 _BANDS = [29, 59, 119, 237, 474, 947, 1889, 3770, 7523, 15011]
 
+
+def _band_label(freq: int) -> str:
+    """'947', '1.9k', '15k': kHz to one place below 10 kHz."""
+    if freq < 1000:
+        return str(freq)
+    khz = freq / 1000
+    return f"{khz:.1f}k" if khz < 10 else f"{round(khz)}k"
+
 _PRESETS: dict[str, list[float]] = {
     "Flat": [0] * 10,
     "Bass Boost": [6, 5, 4, 2, 0, 0, 0, 0, 0, 0],
@@ -71,13 +79,7 @@ class EqPopup(QDialog):
             slider.valueChanged.connect(self._on_slider_changed)
             self._sliders.append(slider)
 
-            # Frequency label.
-            if freq >= 1000:
-                label = f"{freq // 1000}k"
-            else:
-                label = str(freq)
-
-            freq_label = QLabel(label)
+            freq_label = QLabel(_band_label(freq))
             freq_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             freq_label.setStyleSheet("font-size: 9px;")
 
