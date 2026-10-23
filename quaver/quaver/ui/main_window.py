@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from media_core.core.blur import set_blur_behind
 from media_core.services.tag_reader import TagReader
+from media_core.ui.window import size_for_first_run
 
 from quaver.core.audio import PlaybackState
 from quaver.core.config import load_config, save_config, LibraryTabConfig
@@ -2612,6 +2613,8 @@ class MainWindow(QMainWindow):
         geo = s.value("window/geometry")
         if geo:
             self.restoreGeometry(geo)
+        else:
+            size_for_first_run(self, 0.6, 0.7)
         # Restore queue panel visibility.
         queue_visible = s.value("queue/panel_visible")
         if queue_visible is not None:

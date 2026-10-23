@@ -40,6 +40,7 @@ from media_core.ui.widgets.eq_popup import EqPopup
 from media_core.ui.widgets.fullscreen_overlay import FullscreenOverlay
 from media_core.ui.widgets.queue_widget import QueueWidget
 from media_core.ui.widgets.transport import TransportWidget
+from media_core.ui.window import size_for_first_run
 
 from minim.core.config import load_config, save_config
 from minim.tracks import tracks_from_paths
@@ -754,6 +755,8 @@ class MainWindow(QMainWindow):
         geo = s.value("window/geometry")
         if geo:
             self.restoreGeometry(geo)
+        else:
+            size_for_first_run(self, 0.45, 0.55)
         main_state = s.value("splitter/main")
         if main_state:
             self._main_splitter.restoreState(main_state)
