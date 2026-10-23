@@ -108,11 +108,13 @@ The tests run headless, on Qt's offscreen platform, in a couple of seconds:
 
 ![Auto-DJ carrying on after an album ends, with its settings open](docs/screenshots/quaver-autodj.png)
 
+![A podcast episode streaming from Quaver's Podcasts tab](docs/screenshots/quaver-podcasts.png)
+
 ![Minim playing a video, with the queue hidden](docs/screenshots/minim.png)
 
 ![Minim playing an album folder](docs/screenshots/minim-music.png)
 
-The albums in these screenshots are made up for the demo. The video is the
+The albums and the podcast in these screenshots are made up for the demo. The video is the
 trailer for *Sintel*, © Blender Foundation,
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 
