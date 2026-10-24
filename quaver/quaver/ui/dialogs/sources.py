@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -219,9 +220,12 @@ class SourcesDialog(QDialog):
 
         form = QFormLayout()
 
-        # Path (read-only display).
+        # Path (read-only display).  Expanding, so the field fills the
+        # column: Breeze keeps other fields at their size hint, which for
+        # a word-wrapped label is too narrow for even a short path.
         self._path_label = QLabel("")
         self._path_label.setWordWrap(True)
+        self._path_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._path_label.setStyleSheet("color: rgba(255,255,255,0.6); font-size: 11px;")
         form.addRow("Path:", self._path_label)
 
