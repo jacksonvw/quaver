@@ -126,7 +126,7 @@ class HoverTrackingMixin:
         self.setMouseTracking(True)
 
     def mouseMoveEvent(self, event) -> None:
-        idx = self.indexAt(event.pos())
+        idx = self.indexAt(event.position().toPoint())
         new_row = idx.row() if idx.isValid() else -1
         if new_row != self._hovered_row:
             old = self._hovered_row

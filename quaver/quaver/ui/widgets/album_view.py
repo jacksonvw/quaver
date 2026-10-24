@@ -947,7 +947,7 @@ class _AlbumTableView(QTableView):
 
     def mousePressEvent(self, event) -> None:
         self._drag_start_pos = None
-        pos = event.pos()
+        pos = event.position().toPoint()
         idx = self.indexAt(pos)
         if not idx.isValid():
             # Clicked empty area below all content — clear selection.
@@ -1023,7 +1023,7 @@ class _AlbumTableView(QTableView):
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event) -> None:
-        pos = event.pos()
+        pos = event.position().toPoint()
         idx = self.indexAt(pos)
         if not idx.isValid():
             super().mouseDoubleClickEvent(event)
@@ -1072,7 +1072,7 @@ class _AlbumTableView(QTableView):
         event.accept()
 
     def mouseMoveEvent(self, event) -> None:
-        pos = event.pos()
+        pos = event.position().toPoint()
 
         # Check if we should initiate a drag from an art/title click.
         if self._drag_start_pos is not None and event.buttons() & Qt.MouseButton.LeftButton:
