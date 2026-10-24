@@ -44,7 +44,7 @@ HOVER_BG = QColor(255, 255, 255, 12)
 
 
 class ConsistentItemDelegate(QStyledItemDelegate):
-    """Base delegate that strips system selection/focus painting.
+    """Base delegate that strips system selection/focus/hover painting.
 
     Subclasses should call ``paint_item_background()`` at the start of
     their ``paint()`` method, then do their custom rendering on top.
@@ -54,11 +54,13 @@ class ConsistentItemDelegate(QStyledItemDelegate):
     """
 
     def initStyleOption(self, option: QStyleOptionViewItem, index: QModelIndex) -> None:
-        """Strip State_Selected and State_HasFocus so Qt never draws its
-        own blue/coral highlight or dotted focus rectangle."""
+        """Strip State_Selected, State_HasFocus and State_MouseOver so Qt
+        never draws its own blue/coral highlight, dotted focus rectangle,
+        or hover fill on just the cell under the pointer."""
         super().initStyleOption(option, index)
         option.state &= ~QStyle.StateFlag.State_Selected
         option.state &= ~QStyle.StateFlag.State_HasFocus
+        option.state &= ~QStyle.StateFlag.State_MouseOver
 
     def paint_item_background(
         self,

@@ -2415,7 +2415,9 @@ class MainWindow(QMainWindow):
             QTableWidget::item:selected, QTableView::item:selected
             { background: rgba(255, 255, 255, 40); }
 
-            QListWidget::item:hover:!selected, QTableView::item:hover:!selected
+            /* The main window's views paint their own row hover; an item
+               hover here would also fill just the hovered cell of a table. */
+            QDialog QListWidget::item:hover:!selected
             { background: rgba(255, 255, 255, 15); }
 
             /* ── Headers ── */
