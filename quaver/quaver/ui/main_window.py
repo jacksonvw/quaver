@@ -2411,8 +2411,11 @@ class MainWindow(QMainWindow):
             QTableWidget::item, QTableView::item
             { background: transparent; }
 
+            /* Tables paint this under their delegate's own selection, so
+               it's left to plain tables in dialogs.  The delegates' lists
+               ignore it; plain lists such as combo popups need it. */
             QListWidget::item:selected, QListView::item:selected,
-            QTableWidget::item:selected, QTableView::item:selected
+            QDialog QTableWidget::item:selected, QDialog QTableView::item:selected
             { background: rgba(255, 255, 255, 40); }
 
             /* The main window's views paint their own row hover; an item

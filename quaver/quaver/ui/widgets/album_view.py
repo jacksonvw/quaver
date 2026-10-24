@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
 
 from quaver.core.library import TRACK_IDS_MIME, Track
 from quaver.ui.widgets import art_cache
+from quaver.ui.widgets.delegates import TableSelectionMixin
 
 # Layout constants.
 _ART_THUMB = 80
@@ -630,7 +631,10 @@ class _AlbumArtDelegate(QStyledItemDelegate):
 
         # Now-playing accent bar (left edge of column 1 only, to avoid art column).
         if is_playing and index.column() == 1:
-            accent = option.palette.highlight().color()
+            # The view's palette: TableSelectionMixin clears Highlight in
+            # the item options.
+            palette = view.palette() if view is not None else QApplication.palette()
+            accent = palette.highlight().color()
             bar_rect = option.rect.adjusted(0, 1, 0, -1)
             bar_rect.setWidth(self._PLAYING_BAR_W)
             painter.fillRect(bar_rect, accent)
@@ -829,7 +833,7 @@ class _AlbumArtDelegate(QStyledItemDelegate):
 # ── Table view ────────────────────────────────────────────────────────
 
 
-class _AlbumTableView(QTableView):
+class _AlbumTableView(TableSelectionMixin, QTableView):
     """Configured table view with art spanning, click handlers, and drag."""
 
     play_album = Signal(list, int)
@@ -862,15 +866,11 @@ class _AlbumTableView(QTableView):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.setMouseTracking(True)  # Enable hover detection.
 
-        # Override system selection color to prevent coral-pink bleed.
-        # Use a subtle white highlight consistent with our delegate painting.
+        # The delegate paints selection and hover itself; TableSelectionMixin
+        # keeps the style's accent fill off selected rows.
         self.setStyleSheet("""
             _AlbumTableView {
-                selection-background-color: rgba(255, 255, 255, 25);
                 selection-color: palette(text);
-            }
-            _AlbumTableView::item:selected {
-                background: rgba(255, 255, 255, 25);
             }
             _AlbumTableView::item:hover:!selected {
                 background: transparent;
