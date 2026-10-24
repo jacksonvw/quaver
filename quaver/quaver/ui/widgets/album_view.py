@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 
 from PySide6.QtCore import (
     QAbstractTableModel,
+    QEvent,
     QItemSelection,
     QItemSelectionModel,
     QMimeData,
@@ -1154,14 +1155,17 @@ class _AlbumTableView(QTableView):
         self._drag_start_pos = None
         super().mouseReleaseEvent(event)
 
-    def leaveEvent(self, event) -> None:
-        old_rows = [self._hovered_row, self._hovered_art_row, self._hovered_title_row]
-        self._hovered_row = -1
-        self._hovered_art_row = -1
-        self._hovered_title_row = -1
-        for r in old_rows:
-            self._repaint_row(r)
-        super().leaveEvent(event)
+    def viewportEvent(self, event) -> bool:
+        # The viewport's Leave, not the view's: moving onto the scroll bar
+        # never leaves the view.
+        if event.type() == QEvent.Type.Leave:
+            old_rows = [self._hovered_row, self._hovered_art_row, self._hovered_title_row]
+            self._hovered_row = -1
+            self._hovered_art_row = -1
+            self._hovered_title_row = -1
+            for r in old_rows:
+                self._repaint_row(r)
+        return super().viewportEvent(event)
 
     def _repaint_row(self, row: int) -> None:
         if row < 0 or not self.model():

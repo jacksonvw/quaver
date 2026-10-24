@@ -24,7 +24,7 @@ Usage:
 
 from __future__ import annotations
 
-from PySide6.QtCore import QModelIndex, QRect, Qt
+from PySide6.QtCore import QEvent, QModelIndex, QRect, Qt
 from PySide6.QtGui import QColor, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -133,11 +133,14 @@ class HoverTrackingMixin:
             self._repaint_row(new_row)
         super().mouseMoveEvent(event)
 
-    def leaveEvent(self, event) -> None:
-        old = self._hovered_row
-        self._hovered_row = -1
-        self._repaint_row(old)
-        super().leaveEvent(event)
+    def viewportEvent(self, event) -> bool:
+        # The viewport's Leave, not the view's: the scroll bars and headers
+        # belong to the view, so moving onto them never leaves the view.
+        if event.type() == QEvent.Type.Leave:
+            old = self._hovered_row
+            self._hovered_row = -1
+            self._repaint_row(old)
+        return super().viewportEvent(event)
 
     def _repaint_row(self, row: int) -> None:
         """Schedule a repaint for just the given row."""
