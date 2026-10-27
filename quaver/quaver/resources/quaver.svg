@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Quaver: a Q whose tail is a run of equaliser bars. The bowl is open at
-     the lower right; the bars stand on the bowl's baseline, the middle one
-     directly under the bowl's open end, every gap one grid unit. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Quaver: a Q whose tail is a run of equaliser bars. The bowl is open at
+       the lower right; the bars stand on the bowl's baseline, the middle one
+       directly under the bowl's open end, every gap one grid unit.
+       The comment sits inside <svg> because file-type sniffing (shared-mime-info,
+       so GdkPixbuf and AppStream) only looks for "<svg" in the first 256 bytes. -->
   <path d="M 6 13 A 5 5 0 1 1 11 8" fill="none" stroke="#FFFFFF" stroke-width="2"/>
   <rect x="7" y="10" width="2" height="4" fill="#FFFFFF"/>
   <rect x="10" y="9" width="2" height="5" fill="#FFFFFF"/>
