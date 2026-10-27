@@ -52,6 +52,7 @@ from media_core.core.track import (
     VIDEO_IDS_MIME,
     Track,
 )
+from media_core.ui.subtitles import add_subtitle_menu
 from media_core.ui.widgets import embedded_art_cache as _default_art_provider
 from media_core.ui.widgets.delegates import ConsistentItemDelegate, DropIndicatorMixin, HoverTrackingMixin
 
@@ -133,8 +134,10 @@ def _stream_action(menu: QMenu, label: str, support: list[bool], idx: int) -> QA
     return action
 
 
-def build_stream_menus(menu: QMenu, engine) -> None:
-    """Append Audio Track and Subtitles submenus for the active video.
+def build_stream_menus(menu: QMenu, engine, parent=None, notify=None) -> None:
+    """Append the Audio Track submenu and VLC's Subtitle submenu for the
+    active video.  *parent* hosts Add Subtitle File's dialog, and *notify*
+    shows its message on screen.
 
     Shared utility — used by QueueWidget, NowPlayingPanel, AlbumView.
     """
@@ -142,9 +145,6 @@ def build_stream_menus(menu: QMenu, engine) -> None:
         return
 
     audio_tracks = engine.get_audio_tracks()
-    sub_tracks = engine.get_subtitle_tracks()
-    if not audio_tracks and not sub_tracks:
-        return
 
     menu.addSeparator()
 
@@ -160,31 +160,9 @@ def build_stream_menus(menu: QMenu, engine) -> None:
             )
             audio_menu.addAction(action)
 
-    if sub_tracks:
-        sub_menu = menu.addMenu("Subtitles")
-        current_sub = engine.get_current_subtitle()
-        subs_enabled = engine.get_subtitle_flags()
-
-        off_action = QAction("Off", menu)
-        off_action.setCheckable(True)
-        off_action.setChecked(not subs_enabled)
-        off_action.triggered.connect(
-            lambda checked: engine.set_subtitle_enabled(False)
-        )
-        sub_menu.addAction(off_action)
-        sub_menu.addSeparator()
-
-        sub_support = engine.get_subtitle_track_support()
-        for idx, label in sub_tracks:
-            action = _stream_action(menu, label, sub_support, idx)
-            action.setChecked(subs_enabled and idx == current_sub)
-            # set_current_subtitle implicitly enables subtitles — no need
-            # to also call set_subtitle_enabled, which would fire a
-            # redundant SELECT_STREAMS event for track 0 first.
-            action.triggered.connect(
-                lambda checked, i=idx: engine.set_current_subtitle(i)
-            )
-            sub_menu.addAction(action)
+    # Always there, as in VLC: Add Subtitle File is wanted most when a
+    # video has no subtitles of its own.
+    add_subtitle_menu(menu, engine, parent, notify)
 
 
 # ── Model ────────────────────────────────────────────────────────────
@@ -742,7 +720,7 @@ class QueueWidget(QWidget):
 
     def _add_stream_menus(self, menu: QMenu) -> None:
         """Append Audio Track and Subtitles submenus for the active video."""
-        build_stream_menus(menu, self._engine)
+        build_stream_menus(menu, self._engine, parent=self)
 
     def _on_internal_reorder(self, source_rows: list[int], dest_row: int) -> None:
         """Handle drag-reorder within the queue (supports multi-row)."""

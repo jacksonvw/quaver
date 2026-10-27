@@ -8,6 +8,10 @@ Dual-path rendering:
 Both paths render at the OVERLAY's resolution (display size), not at the
 source video resolution.  Text stays crisp regardless of video quality.
 
+External subtitle files, which the engine reads itself, take the same two
+paths, drawn from the playback position less the subtitle delay.  The
+overlay also shows VLC-style on-screen messages, top right.
+
 Mouse-transparent — clicks pass through to the VideoSurface beneath.
 """
 
@@ -70,6 +74,15 @@ class SubtitleOverlay(QWidget):
         # --- QPainter text (SRT/VTT path) ---
         self._current_text: str = ""
 
+        # --- External subtitle file (drawn from the playback position) ---
+        self._external = None  # the engine's SubtitleFile being drawn
+
+        # --- On-screen messages ("Subtitle track: …"), VLC-style ---
+        self._osd_text: str = ""
+        self._osd_timer = QTimer(self)
+        self._osd_timer.setSingleShot(True)
+        self._osd_timer.timeout.connect(self._on_hide_osd)
+
         # Configuration.
         self._font_size: int = 24
         self._outline: bool = True
@@ -112,6 +125,7 @@ class SubtitleOverlay(QWidget):
         self._current_text = ""
         self._ass_bitmaps = []
         self._libass_track_ready = False
+        self._external = None
         self._sub_serial = engine.get_subtitle_serial()
         self._timer.start()
 
@@ -119,11 +133,21 @@ class SubtitleOverlay(QWidget):
         """Stop polling and clear display."""
         self._timer.stop()
         self._hide_timer.stop()
+        self._osd_timer.stop()
         self._engine = None
         self._video_surface = None
         self._current_text = ""
+        self._osd_text = ""
         self._ass_bitmaps = []
         self._libass_track_ready = False
+        self._external = None
+        self.update()
+
+    def show_message(self, text: str, duration_ms: int = 2000) -> None:
+        """Show *text* at the top right for a moment, as VLC shows a track
+        change or a new subtitle delay."""
+        self._osd_text = text
+        self._osd_timer.start(duration_ms)
         self.update()
 
     def clear(self) -> None:
@@ -168,6 +192,7 @@ class SubtitleOverlay(QWidget):
             self._libass_track_ready = False
             self._ass_bitmaps = []
             self._current_text = ""
+            self._external = None
             self._hide_timer.stop()
             self.update()
 
@@ -180,23 +205,26 @@ class SubtitleOverlay(QWidget):
                 self.update()
             return
 
+        delay_ms = self._engine.get_subtitle_delay()
+        external = self._engine.get_active_external()
+        if external is not None:
+            self._poll_external(external, delay_ms)
+            return
+        if self._external is not None:
+            # Back from a file: libass still holds the file's track.
+            self._external = None
+            self._libass_track_ready = False
+            self._ass_bitmaps = []
+            self._current_text = ""
+            self.update()
+
         # --- ASS path: drain raw chunks → feed to libass → render ---
         ass_chunks = self._engine.pull_ass_chunks()
         if ass_chunks:
             self._feed_ass_chunks(ass_chunks)
 
         if self._libass_track_ready and self._libass.available:
-            # Lay ASS out on the picture, not the page around it, so a
-            # letterboxed video keeps its positions and font sizes.
-            area = self._picture_rect()
-            if area.width() > 0 and area.height() > 0:
-                self._libass.set_frame_size(area.width(), area.height())
-                pos_ms = self._engine.get_position_ms()
-                bitmaps = self._libass.render_frame(pos_ms)
-                if bitmaps != self._ass_bitmaps or area.topLeft() != self._ass_origin:
-                    self._ass_bitmaps = bitmaps
-                    self._ass_origin = area.topLeft()
-                    self.update()
+            self._render_libass(self._engine.get_position_ms() - delay_ms)
             # ASS path is active — skip text path.
             return
 
@@ -209,6 +237,38 @@ class SubtitleOverlay(QWidget):
                 self._current_text = text
                 self._hide_timer.stop()
                 self._hide_timer.start(max(duration_ms, 500))
+                self.update()
+
+    def _poll_external(self, sub, delay_ms: int) -> None:
+        """Draw an external file at the playback position, less the delay:
+        an ASS/SSA script through libass, anything else as text."""
+        if sub is not self._external:
+            self._external = sub
+            self._hide_timer.stop()
+            self._current_text = ""
+            self._ass_bitmaps = []
+            self._libass_track_ready = sub.is_ass and self._libass.load_script(sub.script)
+            self.update()
+        pos_ms = self._engine.get_position_ms() - delay_ms
+        if sub.is_ass:
+            if self._libass_track_ready:
+                self._render_libass(pos_ms)
+            return
+        text = _strip_markup(sub.text_at(pos_ms))
+        if text != self._current_text:
+            self._current_text = text
+            self.update()
+
+    def _render_libass(self, pos_ms: int) -> None:
+        # Lay ASS out on the picture, not the page around it, so a
+        # letterboxed video keeps its positions and font sizes.
+        area = self._picture_rect()
+        if area.width() > 0 and area.height() > 0:
+            self._libass.set_frame_size(area.width(), area.height())
+            bitmaps = self._libass.render_frame(pos_ms)
+            if bitmaps != self._ass_bitmaps or area.topLeft() != self._ass_origin:
+                self._ass_bitmaps = bitmaps
+                self._ass_origin = area.topLeft()
                 self.update()
 
     def _picture_rect(self) -> QRect:
@@ -238,19 +298,49 @@ class SubtitleOverlay(QWidget):
         self._current_text = ""
         self.update()
 
+    def _on_hide_osd(self) -> None:
+        self._osd_text = ""
+        self.update()
+
     # ------------------------------------------------------------------
     # Painting
     # ------------------------------------------------------------------
 
     def paintEvent(self, event) -> None:
-        # ASS path: paint libass bitmaps.
+        # ASS path: paint libass bitmaps.  Text path: paint QPainter text.
         if self._ass_bitmaps:
             self._paint_ass_bitmaps()
-            return
-
-        # Text path: paint QPainter text.
-        if self._current_text:
+        elif self._current_text:
             self._paint_text()
+        if self._osd_text:
+            self._paint_osd()
+
+    def _paint_osd(self) -> None:
+        """The on-screen message, white with a dark outline, top right."""
+        area = QRectF(self.rect())
+        if area.isEmpty():
+            return
+        font = QFont()
+        font.setPixelSize(max(14, int(area.height() / 24)))
+        font.setBold(True)
+        fm = QFontMetricsF(font)
+        margin = area.height() * 0.04
+        text = fm.elidedText(self._osd_text, Qt.TextElideMode.ElideMiddle,
+                             area.width() - 2 * margin)
+        x = area.right() - margin - fm.horizontalAdvance(text)
+        y = area.top() + margin + fm.ascent()
+
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        path = QPainterPath()
+        path.addText(x, y, font, text)
+        p.setPen(QPen(QColor(0, 0, 0, 220), max(2.0, font.pixelSize() / 10.0)))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawPath(path)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QBrush(QColor(255, 255, 255, 240)))
+        p.drawPath(path)
+        p.end()
 
     def _paint_ass_bitmaps(self) -> None:
         """Composite libass-rendered RGBA bitmaps onto the overlay."""

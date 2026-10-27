@@ -142,6 +142,19 @@ class LibassRenderer:
                 self._track, codec_private, len(codec_private),
             )
 
+    def load_script(self, script: bytes) -> bool:
+        """Replace the track with a whole ASS/SSA script (an external file).
+
+        Returns False if libass couldn't read it.
+        """
+        if not self.available:
+            return False
+        if self._track:
+            self._lib.ass_free_track(self._track)
+        buf = ctypes.create_string_buffer(script, len(script))
+        self._track = self._lib.ass_read_memory(self._library, buf, len(script), None)
+        return bool(self._track)
+
     def process_chunk(self, data: bytes, timecode_ms: int, duration_ms: int) -> None:
         """Feed a single ASS dialogue event to the current track."""
         if not self.available or not self._track:
@@ -248,6 +261,8 @@ class LibassRenderer:
         L.ass_free_track.restype = None
         L.ass_free_track.argtypes = [vp]
 
+        L.ass_read_memory.restype = vp
+        L.ass_read_memory.argtypes = [vp, cp, ctypes.c_size_t, cp]
         L.ass_process_codec_private.restype = None
         L.ass_process_codec_private.argtypes = [vp, cp, ctypes.c_int]
 

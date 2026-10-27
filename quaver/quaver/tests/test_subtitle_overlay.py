@@ -57,6 +57,12 @@ class _Engine:
     def get_position_ms(self) -> int:
         return 8000
 
+    def get_subtitle_delay(self) -> int:
+        return 0
+
+    def get_active_external(self):
+        return None
+
     def pull_subtitle_text(self):
         text, self.text = self.text, None
         return text

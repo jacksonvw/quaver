@@ -700,6 +700,11 @@ class NowPlayingPanel(QWidget):
         """Clear any displayed subtitle text (e.g. after a seek)."""
         self._subtitle_overlay.clear()
 
+    def show_osd_message(self, text: str) -> None:
+        """Show *text* over the video for a moment, as VLC does a track
+        change ("Subtitle track: English") or a new subtitle delay."""
+        self._subtitle_overlay.show_message(text)
+
     def set_video_mode(self, mode: str) -> None:
         """Switch between 'thumbnail' and 'video' display modes.
 
@@ -874,7 +879,8 @@ class NowPlayingPanel(QWidget):
             # Video stream selection (audio tracks / subtitles).
             if (is_video or self._is_youtube_track) and self._current_engine:
                 from media_core.ui.widgets.queue_widget import build_stream_menus
-                build_stream_menus(menu, self._current_engine)
+                build_stream_menus(menu, self._current_engine, parent=self,
+                                   notify=self.show_osd_message)
 
             # Mark as Watched / Unwatched (video only).
             if is_video and track.id >= 0:

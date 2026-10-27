@@ -26,6 +26,8 @@ gi.require_version("Gst", "1.0")
 gi.require_version("GstApp", "1.0")
 from gi.repository import GLib, Gst, GstApp  # noqa: F401 — GstApp import activates appsink methods
 
+from media_core.core import subtitle_files
+
 Gst.init(None)
 
 log = logging.getLogger(__name__)
@@ -83,6 +85,14 @@ class AudioEngine:
         self._current_sub_index: int = -1  # local tracking (authoritative)
         self._sub_serial = 0  # bumped when the subtitle stream changes
         self._sub_stream_id: str | None = None  # the stream it was bumped for
+        # External subtitle files, read by subtitle_files and drawn by the
+        # overlay; they follow the embedded streams in the track list.
+        # Replaced whole, never mutated: the GLib thread swaps them in on a
+        # gapless change while the Qt thread reads them.
+        self._externals: tuple[subtitle_files.SubtitleFile, ...] = ()
+        self._active_external: subtitle_files.SubtitleFile | None = None
+        self._last_sub_choice = -1  # what toggle_subtitles turns back on
+        self._sub_delay_ms = 0  # positive: subtitles later, as VLC's
         self._setup_text_sink()
 
         self._state = PlaybackState.STOPPED
@@ -133,6 +143,11 @@ class AudioEngine:
     def current_uri(self) -> str | None:
         return self._current_uri
 
+    @property
+    def current_path(self) -> Path | None:
+        """The local file playing, or None for a stream."""
+        return self._uri_to_path(self._current_uri)
+
     def play_file(self, path: str | Path) -> None:
         """Start playback of *path* (a local file or http/https URI)."""
         s = str(path)
@@ -143,9 +158,10 @@ class AudioEngine:
         self._stop_pipeline()
         self._current_uri = uri
         self._playbin.set_property("uri", uri)
-        # Auto-detect external subtitle file (e.g. video.srt beside video.mkv).
-        sub = self._find_external_subtitle(Path(path))
-        self._playbin.set_property("suburi", sub.as_uri() if sub else None)
+        # Subtitle files beside the video are read and drawn here, not
+        # handed to playbin's suburi, which takes only one.
+        self._playbin.set_property("suburi", None)
+        self._load_external_subtitles(Path(path))
         self._playbin.set_state(Gst.State.PLAYING)
         self._set_state(PlaybackState.PLAYING)
 
@@ -154,7 +170,8 @@ class AudioEngine:
         self._stop_pipeline()
         self._current_uri = uri
         self._playbin.set_property("uri", uri)
-        self._playbin.set_property("suburi", None)  # No external subs for URIs.
+        self._playbin.set_property("suburi", None)
+        self._load_external_subtitles(None)  # nothing to look beside
         self._playbin.set_state(Gst.State.PLAYING)
         self._set_state(PlaybackState.PLAYING)
 
@@ -176,6 +193,7 @@ class AudioEngine:
 
     def stop(self) -> None:
         self._stop_pipeline()
+        self._load_external_subtitles(None)
         self._set_state(PlaybackState.STOPPED)
 
     def seek(self, position_ms: int) -> None:
@@ -286,8 +304,12 @@ class AudioEngine:
         return self._decodable(self._streams_by_type(Gst.StreamType.AUDIO))
 
     def get_subtitle_track_support(self) -> list[bool]:
-        """Per-subtitle-track decodability, index-aligned with get_subtitle_tracks()."""
-        return self._decodable(self._streams_by_type(Gst.StreamType.TEXT))
+        """Per-subtitle-track decodability, index-aligned with get_subtitle_tracks().
+
+        External files were read when they were added, so they all count.
+        """
+        return (self._decodable(self._streams_by_type(Gst.StreamType.TEXT))
+                + [True] * len(self._externals))
 
     def _reject_undecodable(self, stream, label: str) -> bool:
         """Report and refuse a switch to an undecodable stream."""
@@ -351,17 +373,27 @@ class AudioEngine:
             )
 
     def get_subtitle_tracks(self) -> list[tuple[int, str]]:
-        """Return [(index, language/label)] for available subtitle streams."""
+        """Return [(index, label)] for the subtitle tracks: the embedded
+        streams, then the external files, each named for its file."""
         tracks = []
         for i, stream in enumerate(self._streams_by_type(Gst.StreamType.TEXT)):
             label = self._stream_label(stream, f"Subtitle {i + 1}")
             tracks.append((i, label))
-        return self._deduplicate_labels(tracks)
+        tracks = self._deduplicate_labels(tracks)
+        base = len(tracks)
+        tracks += [(base + j, sub.label) for j, sub in enumerate(self._externals)]
+        return tracks
 
     def get_current_subtitle(self) -> int:
-        """Return the current subtitle stream index (-1 = off)."""
+        """Return the current subtitle track index (-1 = off)."""
         if not self._subtitles_enabled:
             return -1
+        if self._active_external is not None:
+            try:
+                return (len(self._streams_by_type(Gst.StreamType.TEXT))
+                        + self._externals.index(self._active_external))
+            except ValueError:
+                return -1
         if self._current_sub_index < 0:
             # None chosen yet: report the stream playbin3 picked itself.
             for i, s in enumerate(self._streams_by_type(Gst.StreamType.TEXT)):
@@ -379,15 +411,26 @@ class AudioEngine:
         return self._sub_serial
 
     def set_current_subtitle(self, index: int) -> None:
-        """Switch to subtitle stream *index*.  Implicitly enables subtitles."""
+        """Switch to subtitle track *index*.  Implicitly enables subtitles."""
         text_streams = self._streams_by_type(Gst.StreamType.TEXT)
+        external = index - len(text_streams)
+        if 0 <= external < len(self._externals):
+            self._choose_external(self._externals[external])
+            self._last_sub_choice = index
+            return
         if 0 <= index < len(text_streams) and self._reject_undecodable(
             text_streams[index], "subtitle"
         ):
             return
+        if self._active_external is not None:
+            # Back from a file: whichever stream this is, the overlay
+            # has to start over.
+            self._active_external = None
+            self._sub_stream_id = None
         self._subtitles_enabled = True
         self._current_sub_index = index
         if 0 <= index < len(text_streams):
+            self._last_sub_choice = index
             stream_id = text_streams[index].get_stream_id()
             if stream_id != self._sub_stream_id:
                 self._sub_stream_id = stream_id
@@ -414,11 +457,123 @@ class AudioEngine:
             self._current_sub_index = -1
             self._subtitle_queue.clear()
             self._ass_chunks.clear()
+        elif self._active_external is None and self._current_sub_index < 0:
+            text_streams = self._streams_by_type(Gst.StreamType.TEXT)
+            if text_streams:
+                self.set_current_subtitle(0)
+            elif self._externals:
+                self._choose_external(self._externals[0])
+
+    def _choose_external(self, sub: subtitle_files.SubtitleFile) -> None:
+        self._subtitles_enabled = True
+        self._current_sub_index = -1
+        if sub is not self._active_external:
+            self._active_external = sub
+            self._sub_serial += 1
+        # The embedded stream's queued data is no longer wanted.
+        self._subtitle_queue.clear()
+        self._ass_chunks.clear()
+
+    def get_active_external(self) -> subtitle_files.SubtitleFile | None:
+        """The external file being shown, or None (an embedded stream, or off).
+
+        The overlay draws it itself, from the playback position.
+        """
+        return self._active_external if self._subtitles_enabled else None
+
+    def add_subtitle_file(self, path: str | Path) -> int:
+        """Read *path* as a subtitle track and choose it, as VLC's Add
+        Subtitle File does.  Returns its index; a file already loaded is
+        just chosen.  Raises subtitle_files.SubtitleError if it can't be
+        read."""
+        path = Path(path)
+        n_embedded = len(self._streams_by_type(Gst.StreamType.TEXT))
+        for j, sub in enumerate(self._externals):
+            if sub.path == path:
+                self.set_current_subtitle(n_embedded + j)
+                return n_embedded + j
+        sub = subtitle_files.load(path, fps=self._video_fps())
+        self._externals = self._externals + (sub,)
+        index = n_embedded + len(self._externals) - 1
+        self.set_current_subtitle(index)
+        return index
+
+    def cycle_subtitle(self, step: int = 1) -> int:
+        """Choose the next subtitle track, as VLC's V does (Alt+V: step -1).
+
+        The round is Disable, then each track in turn.  Returns the track
+        now chosen, -1 for none.
+        """
+        support = self.get_subtitle_track_support()
+        choices = [-1] + [i for i, _ in self.get_subtitle_tracks()
+                          if i < len(support) and support[i]]
+        current = self.get_current_subtitle()
+        pos = choices.index(current) if current in choices else 0
+        chosen = choices[(pos + step) % len(choices)]
+        if chosen < 0:
+            self.set_subtitle_enabled(False)
         else:
-            if self._current_sub_index < 0:
-                text_streams = self._streams_by_type(Gst.StreamType.TEXT)
-                if text_streams:
-                    self.set_current_subtitle(0)
+            self.set_current_subtitle(chosen)
+        return chosen
+
+    def toggle_subtitles(self) -> int:
+        """Turn subtitles off, or back on to the track last chosen, as VLC's
+        Shift+V does.  Returns the track now chosen, -1 for none."""
+        if self.get_current_subtitle() >= 0:
+            self.set_subtitle_enabled(False)
+            return -1
+        tracks = [i for i, _ in self.get_subtitle_tracks()]
+        if not tracks:
+            return -1
+        chosen = self._last_sub_choice if self._last_sub_choice in tracks else tracks[0]
+        self.set_current_subtitle(chosen)
+        return self.get_current_subtitle()
+
+    def get_subtitle_delay(self) -> int:
+        """Milliseconds the subtitles are shown late (negative: early)."""
+        return self._sub_delay_ms
+
+    def set_subtitle_delay(self, ms: int) -> None:
+        """Show the subtitles *ms* later (negative: earlier), as VLC's G and
+        H move them.
+
+        Embedded streams reach the text sink that much later or earlier;
+        the overlay renders libass and external files at the position less
+        the delay.
+        """
+        self._sub_delay_ms = int(ms)
+        if self._text_appsink is not None:
+            self._text_appsink.set_property("ts-offset", self._sub_delay_ms * Gst.MSECOND)
+
+    def _video_fps(self) -> float | None:
+        """The video's frame rate, which MicroDVD files count in."""
+        for stream in self._streams_by_type(Gst.StreamType.VIDEO):
+            caps = stream.get_caps()
+            if caps and caps.get_size():
+                ok, num, den = caps.get_structure(0).get_fraction("framerate")
+                if ok and num and den:
+                    return num / den
+        return None
+
+    def _load_external_subtitles(self, video: Path | None) -> None:
+        """Make the subtitle files beside *video* its external tracks, and
+        choose the best of them, as VLC does.  None clears them."""
+        loaded = []
+        if video is not None:
+            for path in subtitle_files.find_beside(video):
+                try:
+                    loaded.append(subtitle_files.load(
+                        path, subtitle_files.label_for(path, video)))
+                except subtitle_files.SubtitleError as exc:
+                    log.info("Skipping subtitle file %s: %s", path, exc)
+        self._externals = tuple(loaded)
+        self._active_external = loaded[0] if loaded else None
+        if loaded:
+            self._subtitles_enabled = True
+            log.info("External subtitles: %s", ", ".join(s.label for s in loaded))
+        self._last_sub_choice = -1
+        self._sub_serial += 1
+        self.set_subtitle_delay(0)
 
     # Common ISO 639-1/2 codes → human-readable names.  GStreamer's
     # language-name tag is often missing; this table prevents bare "en"
@@ -711,8 +866,8 @@ class AudioEngine:
         """
         try:
             sample = sink.emit("pull-sample")
-            if not sample:
-                return Gst.FlowReturn.OK
+            if not sample or self._active_external is not None:
+                return Gst.FlowReturn.OK  # a file is showing instead
             buf = sample.get_buffer()
             if not buf:
                 return Gst.FlowReturn.OK
@@ -914,50 +1069,21 @@ class AudioEngine:
             # Fires when a new stream actually starts (including gapless).
             if self._gapless_pending:
                 self._gapless_pending = False
+                # The next file's own subtitle files, not the last one's.
+                self._load_external_subtitles(self._uri_to_path(self._current_uri))
                 self._set_state(PlaybackState.PLAYING)
                 if self.on_gapless_transition:
                     self.on_gapless_transition()
 
-    # Subtitle file extensions, in priority order.
-    _SUB_EXTENSIONS = (".srt", ".ass", ".ssa", ".vtt", ".sub")
-
     @staticmethod
-    def _find_external_subtitle(video_path: Path) -> Path | None:
-        """Find an external subtitle file matching *video_path*.
-
-        Looks for files like ``video.srt``, ``video.en.srt``, etc.
-        in the same directory.  Returns the best match or None.
-        """
-        video_path = video_path.resolve()
-        stem = video_path.stem  # e.g. "Episode 01"
-        parent = video_path.parent
-        if not parent.is_dir():
+    def _uri_to_path(uri: str | None) -> Path | None:
+        """The local path of a file:// URI; None for anything else."""
+        if not uri or not uri.startswith("file://"):
             return None
-
-        # Exact stem match first (video.srt), then language variants (video.en.srt).
-        best: Path | None = None
-        best_priority = len(AudioEngine._SUB_EXTENSIONS) + 1
         try:
-            for f in parent.iterdir():
-                if not f.is_file():
-                    continue
-                name_lower = f.name.lower()
-                # Must start with the video's stem.
-                if not name_lower.startswith(stem.lower()):
-                    continue
-                for pri, ext in enumerate(AudioEngine._SUB_EXTENSIONS):
-                    if name_lower.endswith(ext) and pri < best_priority:
-                        # Prefer exact match (video.srt) over lang variant (video.en.srt).
-                        remainder = f.stem[len(stem):]  # e.g. "" or ".en"
-                        if remainder == "":
-                            return f  # Exact match — can't do better.
-                        if best is None or pri < best_priority:
-                            best = f
-                            best_priority = pri
-                        break
-        except OSError:
-            pass
-        return best
+            return Path(GLib.filename_from_uri(uri)[0])
+        except GLib.Error:
+            return None
 
     @staticmethod
     def _path_to_uri(path: str | Path) -> str:

@@ -33,6 +33,7 @@ from media_core.core.replaygain import RGMode
 from media_core.core.track import Track
 from media_core.services.player_service import PlayerService, RepeatMode
 from media_core.services.tag_reader import TagReader
+from media_core.ui import subtitles
 from media_core.ui.panels.nowplaying_panel import NowPlayingPanel
 from media_core.ui.widgets.dsp_popup import DspPopup
 from media_core.ui.widgets.eq_popup import EqPopup
@@ -226,6 +227,22 @@ class MainWindow(QMainWindow):
         min_action.triggered.connect(self._toggle_minimal_ui)
         self.addAction(min_action)
 
+        # VLC's subtitle keys.  Application-wide, so they also reach the
+        # fullscreen window, which is a top-level window of its own.
+        step = subtitles.DELAY_STEP_MS
+        for key, handler in (
+            (Qt.Key.Key_V, lambda engine: subtitles.cycle(engine, 1)),
+            (Qt.Modifier.ALT | Qt.Key.Key_V, lambda engine: subtitles.cycle(engine, -1)),
+            (Qt.Modifier.SHIFT | Qt.Key.Key_V, subtitles.toggle),
+            (Qt.Key.Key_G, lambda engine: subtitles.shift_delay(engine, -step)),
+            (Qt.Key.Key_H, lambda engine: subtitles.shift_delay(engine, step)),
+        ):
+            action = QAction(self)
+            action.setShortcut(QKeySequence(key))
+            action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+            action.triggered.connect(lambda checked=False, h=handler: self._subtitle_key(h))
+            self.addAction(action)
+
         # Right-click anywhere on the window → mini menu.
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._show_window_menu)
@@ -314,6 +331,10 @@ class MainWindow(QMainWindow):
             return super().dropEvent(event)
         paths = [u.toLocalFile() for u in urls if u.isLocalFile()]
         if not paths:
+            return
+        paths = self._take_subtitle_paths(paths)
+        if not paths:  # all subtitle files, now the playing video's tracks
+            event.acceptProposedAction()
             return
         # Route by drop location: queue → append, Now Playing → play now.
         # Anywhere else (transport, dead space) falls back to the legacy
@@ -581,6 +602,9 @@ class MainWindow(QMainWindow):
         menu.addAction("&Next", self._player.next_track)
         menu.addAction("Pre&vious", self._player.prev_track)
         menu.addSeparator()
+        engine = self._video_engine()
+        if engine is not None:
+            subtitles.add_subtitle_menu(menu, engine, self, self._nowplaying.show_osd_message)
         rg = menu.addMenu("&ReplayGain")
         rg.addAction("Off", lambda: self._player.set_rg_mode(RGMode.OFF))
         rg.addAction("Track", lambda: self._player.set_rg_mode(RGMode.TRACK))
@@ -595,6 +619,38 @@ class MainWindow(QMainWindow):
         menu.addAction("&Preferences…", self._show_preferences)
         menu.addAction("E&xit", self.close)
         menu.exec(self.mapToGlobal(pos))
+
+    # ------------------------------------------------------------------
+    # Subtitles (VLC's keys, and files dropped on a playing video)
+    # ------------------------------------------------------------------
+
+    def _video_engine(self):
+        """The engine while a video is loaded, for the subtitle controls;
+        None otherwise."""
+        track = self._player.current_track
+        if track is None or track.media_type != "movie":
+            return None
+        if self._player.engine.state == PlaybackState.STOPPED:
+            return None
+        return self._player.engine
+
+    def _subtitle_key(self, handler) -> None:
+        """Run a subtitle key's *handler* and show its message, as VLC does."""
+        engine = self._video_engine()
+        if engine is not None:
+            self._nowplaying.show_osd_message(handler(engine))
+
+    def _take_subtitle_paths(self, paths: list[str]) -> list[str]:
+        """Add the subtitle files among *paths* to the playing video, as a
+        drop on VLC's window does, and return the rest."""
+        engine = self._video_engine()
+        subs = [p for p in paths if subtitles.is_subtitle_path(p)]
+        if engine is None or not subs:
+            return paths
+        message = subtitles.add_subtitle_paths(engine, subs)
+        if message:
+            self._nowplaying.show_osd_message(message)
+        return [p for p in paths if not subtitles.is_subtitle_path(p)]
 
     @Slot()
     def _show_preferences(self) -> None:
