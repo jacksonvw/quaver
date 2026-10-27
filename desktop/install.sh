@@ -12,6 +12,9 @@
 #   ~/.local/share/icons/hicolor/scalable/apps/{quaver,minim}.svg
 #   ~/.config/mimeapps.list                    (default-application entries)
 #
+# With --flatpak, the Flatpaks bring their own launchers, entries and icons,
+# so this only makes the Minim Flatpak the default, for the same types.
+#
 # Run from anywhere — paths resolve relative to the suite root. Safe to
 # re-run; re-run it after moving the checkout. Installs no packages —
 # README.md has the dnf line.
@@ -26,29 +29,38 @@ BIN_DIR="${HOME}/bin"
 APPS_DIR="${DATA_HOME}/applications"
 ICON_DIR="${DATA_HOME}/icons/hicolor/scalable/apps"
 
-mkdir -p "${BIN_DIR}" "${APPS_DIR}" "${ICON_DIR}"
+if [[ "${1:-}" == "--flatpak" ]]; then
+    MINIM_ENTRY=com.jacksonv.Minim.desktop
+    if ! flatpak info com.jacksonv.Minim >/dev/null 2>&1; then
+        echo "The com.jacksonv.Minim Flatpak isn't installed; README.md has the build line." >&2
+        exit 1
+    fi
+else
+    MINIM_ENTRY=minim.desktop
 
-# --- Launchers: symlinks, so they always run this checkout ---
-for app in quaver minim; do
-    ln -sfn "${PROJECT_ROOT}/bin/${app}" "${BIN_DIR}/${app}"
-    echo "Linked launcher: ${BIN_DIR}/${app}"
-done
+    mkdir -p "${BIN_DIR}" "${APPS_DIR}" "${ICON_DIR}"
 
-# --- Icons and .desktop entries (Exec gets the absolute project root) ---
-for app in quaver minim; do
-    cp "${PROJECT_ROOT}/${app}/${app}/resources/${app}.svg" "${ICON_DIR}/${app}.svg"
-    echo "Wrote icon: ${ICON_DIR}/${app}.svg"
-    sed "s|@PROJECT_ROOT@|${PROJECT_ROOT}|g" "${SCRIPT_DIR}/${app}.desktop.in" > "${APPS_DIR}/${app}.desktop"
-    echo "Wrote desktop entry: ${APPS_DIR}/${app}.desktop"
-done
-DESKTOP_FILE="${APPS_DIR}/minim.desktop"
+    # --- Launchers: symlinks, so they always run this checkout ---
+    for app in quaver minim; do
+        ln -sfn "${PROJECT_ROOT}/bin/${app}" "${BIN_DIR}/${app}"
+        echo "Linked launcher: ${BIN_DIR}/${app}"
+    done
 
-if command -v update-desktop-database >/dev/null 2>&1; then
-    update-desktop-database "${APPS_DIR}"
-    echo "Refreshed desktop database"
-fi
-if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-    gtk-update-icon-cache -t -f "${DATA_HOME}/icons/hicolor" 2>/dev/null || true
+    # --- Icons and .desktop entries (Exec gets the absolute project root) ---
+    for app in quaver minim; do
+        cp "${PROJECT_ROOT}/${app}/${app}/resources/${app}.svg" "${ICON_DIR}/${app}.svg"
+        echo "Wrote icon: ${ICON_DIR}/${app}.svg"
+        sed "s|@PROJECT_ROOT@|${PROJECT_ROOT}|g" "${SCRIPT_DIR}/${app}.desktop.in" > "${APPS_DIR}/${app}.desktop"
+        echo "Wrote desktop entry: ${APPS_DIR}/${app}.desktop"
+    done
+
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database "${APPS_DIR}"
+        echo "Refreshed desktop database"
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -t -f "${DATA_HOME}/icons/hicolor" 2>/dev/null || true
+    fi
 fi
 
 # --- Minim as the default for every type the entry declares ---
@@ -57,8 +69,8 @@ fi
 # A re-run may prune Minim's redundant [Added Associations] lines; the
 # [Default Applications] entries are what decide.
 count=0
-for type in $(sed -n 's/^MimeType=//p' "${DESKTOP_FILE}" | tr ';' ' '); do
-    gio mime "${type}" minim.desktop >/dev/null
+for type in $(sed -n 's/^MimeType=//p' "${SCRIPT_DIR}/minim.desktop.in" | tr ';' ' '); do
+    gio mime "${type}" "${MINIM_ENTRY}" >/dev/null
     count=$((count + 1))
 done
 echo "Set Minim as the default for ${count} MIME types"
@@ -68,10 +80,12 @@ if command -v kbuildsycoca6 >/dev/null 2>&1; then
     kbuildsycoca6 >/dev/null 2>&1 || true
 fi
 
-case ":${PATH}:" in
-    *":${BIN_DIR}:"*) ;;
-    *) echo "Note: ${BIN_DIR} isn't on PATH — the quaver/minim commands and Open in Minim need it." ;;
-esac
+if [[ "${MINIM_ENTRY}" == minim.desktop ]]; then
+    case ":${PATH}:" in
+        *":${BIN_DIR}:"*) ;;
+        *) echo "Note: ${BIN_DIR} isn't on PATH — the quaver/minim commands and Open in Minim need it." ;;
+    esac
+fi
 
 echo
 echo "Done. Run 'quaver', or open any audio/video file to play it in Minim."
