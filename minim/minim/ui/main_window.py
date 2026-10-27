@@ -32,6 +32,7 @@ from media_core.core.blur import set_blur_behind
 from media_core.core.replaygain import RGMode
 from media_core.core.track import Track
 from media_core.services.player_service import PlayerService, RepeatMode
+from media_core.services.sleep_inhibitor import SleepInhibitor
 from media_core.services.tag_reader import TagReader
 from media_core.ui import subtitles
 from media_core.ui.panels.nowplaying_panel import NowPlayingPanel
@@ -70,6 +71,7 @@ class MainWindow(QMainWindow):
 
         # Core service.  No DB — Minim is library-less.
         self._player = PlayerService(db=None)
+        self._sleep_inhibitor = SleepInhibitor("Playing a video")
 
         # Tracks opened from paths start with filename titles and get their
         # tags in the background.  ensure() reads the track about to play on
@@ -376,10 +378,20 @@ class MainWindow(QMainWindow):
         if state == PlaybackState.STOPPED:
             self._transport.spectrum_widget.clear()
             self._nowplaying.spectrum_widget.clear()
+        self._update_sleep_inhibit()
+
+    def _update_sleep_inhibit(self) -> None:
+        """Keep the machine awake while a video plays, and only then: a
+        second Minim playing music beside it shouldn't hold it awake."""
+        track = self._player.current_track
+        self._sleep_inhibitor.set_active(
+            track is not None and track.media_type in ("movie", "series_episode")
+            and self._player.engine.state == PlaybackState.PLAYING)
 
     @Slot(object)
     def _on_track_changed(self, track: Track | None) -> None:
         self._transport.show_track(track)
+        self._update_sleep_inhibit()
 
         # Hand the engine to the panel + queue for video stream menus.
         is_video = track is not None and track.media_type in (
@@ -831,5 +843,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self._save_state()
+        self._sleep_inhibitor.set_active(False)
         self._player.shutdown()
         super().closeEvent(event)
