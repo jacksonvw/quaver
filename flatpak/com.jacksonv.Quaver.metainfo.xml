@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.jacksonv.Quaver</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+
+  <name>Quaver</name>
+  <summary>Music, video and podcast library</summary>
+  <developer id="com.jacksonv">
+    <name>Jackson Vander Wal</name>
+  </developer>
+
+  <description>
+    <p>
+      Quaver is a media library for the Linux desktop: music, TV series,
+      movies, podcasts and YouTube, all through one queue. Its music library
+      is album-first, after MusicBee's.
+    </p>
+    <ul>
+      <li>Album-centric music library: artists, albums grouped by year, cover art from tags or folder images</li>
+      <li>Series and movies matched against TVmaze, or TMDB with your own API key, with Kodi .nfo overrides</li>
+      <li>Files tabs that browse any folder as a thumbnail grid</li>
+      <li>Podcasts from the iTunes directory, with auto-download, retention and resume</li>
+      <li>YouTube channels through yt-dlp: search, subscribe, stream or download</li>
+      <li>Saved playlists, and an Auto-DJ that keeps the queue topped up from the library</li>
+      <li>Tag editor for one or many tracks, with MusicBrainz and AcoustID lookup</li>
+      <li>Gapless playback, ReplayGain, a 10-band equalizer with presets, a compressor and 0.5–2× speed</li>
+      <li>Video, with ASS/SSA subtitles rendered by libass, SRT and VTT, and audio and subtitle track switching</li>
+      <li>Now Playing: large artwork on a blurred or gradient background, with a spectrum visualizer</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">com.jacksonv.Quaver.desktop</launchable>
+  <provides>
+    <binary>quaver</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/jacksonvw/quaver</url>
+  <url type="bugtracker">https://github.com/jacksonvw/quaver/issues</url>
+  <url type="vcs-browser">https://github.com/jacksonvw/quaver</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/jacksonvw/quaver/main/docs/screenshots/quaver.png</image>
+      <caption>Playing an album from the music library</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/jacksonvw/quaver/main/docs/screenshots/quaver-now-playing.png</image>
+      <caption>Now Playing: the cover over a blur of itself, with the spectrum</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/jacksonvw/quaver/main/docs/screenshots/quaver-autodj.png</image>
+      <caption>Auto-DJ carrying on after an album ends, with its settings open</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/jacksonvw/quaver/main/docs/screenshots/quaver-podcasts.png</image>
+      <caption>A podcast episode streaming from the Podcasts tab</caption>
+    </screenshot>
+  </screenshots>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-10-26"/>
+  </releases>
+</component>

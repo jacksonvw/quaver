@@ -1,0 +1,74 @@
+# Minim as a Flatpak: KDE's runtime, for Plasma's own Qt, GStreamer and
+# KWindowSystem, plus Qt's PySide6 base app. Build and install from the
+# repository root:
+#   flatpak run org.flatpak.Builder --user --install --force-clean \
+#       build/flatpak flatpak/com.jacksonv.Minim.yml
+app-id: com.jacksonv.Minim
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+base: io.qt.PySide.BaseApp
+base-version: '6.11'
+command: minim
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  # Read-only, to play any file or folder the file manager, Ctrl+O or a drop
+  # hands over, including on removable drives.
+  - --filesystem=host:ro
+  # Plasma's colour scheme and fonts.
+  - --filesystem=xdg-config/kdeglobals:ro
+  # The media controls (MPRIS2).
+  - --own-name=org.mpris.MediaPlayer2.minim
+build-options:
+  env:
+    # Read by cleanup-BaseApp.sh: Minim doesn't use QtWebEngine.
+    BASEAPP_REMOVE_WEBENGINE: '1'
+cleanup:
+  # The base app's build tooling: headers, Qt's qmake specs, and the LLVM
+  # that shiboken's binding generator runs on.
+  - /include
+  - /mkspecs
+  - /lib/cmake
+  - /lib/libLLVM*
+  - /lib/libclang*
+  - /bin/shiboken6*
+  - /lib/python3*/site-packages/shiboken6_generator*
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
+  - rm -f /app/cleanup-BaseApp*.sh
+modules:
+  - libass.yml
+  - pygobject.yml
+  - dbus-python.yml
+  - python3-minim-deps.yaml
+
+  - name: minim
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/share/suite/media_core /app/share/suite/minim
+      - cp -r media_core/media_core /app/share/suite/media_core/
+      - cp -r minim/minim /app/share/suite/minim/
+      - rm -rf /app/share/suite/*/*/tests
+      - find /app/share/suite -name __pycache__ -prune -exec rm -rf {} +
+      # By hash: the deployed files' timestamps don't survive installation.
+      - python3 -m compileall -q --invalidation-mode checked-hash /app/share/suite
+      - install -Dm755 flatpak/launch.sh /app/bin/minim
+      - install -Dm644 minim/minim/resources/minim.svg
+          /app/share/icons/hicolor/scalable/apps/com.jacksonv.Minim.svg
+      # The checkout's entry, with the Flatpak's command and icon.
+      - sed -e 's|^Exec=.*|Exec=minim %F|'
+            -e 's|^Icon=.*|Icon=com.jacksonv.Minim|'
+            desktop/minim.desktop.in > com.jacksonv.Minim.desktop
+      - install -Dm644 -t /app/share/applications com.jacksonv.Minim.desktop
+      - install -Dm644 -t /app/share/metainfo flatpak/com.jacksonv.Minim.metainfo.xml
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - .git
+          - .flatpak-builder
+          - build

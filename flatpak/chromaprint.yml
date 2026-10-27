@@ -1,0 +1,18 @@
+# Chromaprint, for the tag editor's AcoustID lookups: pyacoustid fingerprints
+# with the library, and falls back to fpcalc. Both decode with the runtime's
+# FFmpeg.
+name: chromaprint
+buildsystem: cmake-ninja
+config-opts:
+  - -DCMAKE_BUILD_TYPE=Release
+  - -DBUILD_TOOLS=ON
+  - -DBUILD_TESTS=OFF
+  - -DFFT_LIB=avtx
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/cmake
+sources:
+  - type: archive
+    url: https://github.com/acoustid/chromaprint/releases/download/v1.6.1/chromaprint-1.6.1.tar.gz
+    sha256: 3368805af0ee47b9df74df10b5001a44569e01df2844dab520031720dde9ad23

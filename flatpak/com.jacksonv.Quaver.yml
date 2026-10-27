@@ -1,0 +1,86 @@
+# Quaver as a Flatpak: KDE's runtime, for Plasma's own Qt, GStreamer and
+# KWindowSystem, plus Qt's PySide6 base app. Minim is bundled too, so
+# "Open in Minim" finds it on PATH as it does in a checkout. Build and
+# install from the repository root:
+#   flatpak run org.flatpak.Builder --user --install --force-clean \
+#       build/flatpak flatpak/com.jacksonv.Quaver.yml
+app-id: com.jacksonv.Quaver
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+base: io.qt.PySide.BaseApp
+base-version: '6.11'
+command: quaver
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  # Podcasts, YouTube, streaming, artwork, and the TVmaze, TMDB,
+  # MusicBrainz and AcoustID lookups.
+  - --share=network
+  # Library sources on any disk, which the tag editor writes to, and
+  # podcast and YouTube downloads.
+  - --filesystem=host
+  # Plasma's colour scheme and fonts.
+  - --filesystem=xdg-config/kdeglobals:ro
+  # The media controls (MPRIS2), for Quaver and for the Minim it opens.
+  - --own-name=org.mpris.MediaPlayer2.quaver
+  - --own-name=org.mpris.MediaPlayer2.minim
+  # Keeping the screen on while a video plays.
+  - --talk-name=org.freedesktop.ScreenSaver
+build-options:
+  env:
+    # Read by cleanup-BaseApp.sh: Quaver doesn't use QtWebEngine.
+    BASEAPP_REMOVE_WEBENGINE: '1'
+cleanup:
+  # The base app's build tooling: headers, Qt's qmake specs, and the LLVM
+  # that shiboken's binding generator runs on.
+  - /include
+  - /mkspecs
+  - /lib/cmake
+  - /lib/libLLVM*
+  - /lib/libclang*
+  - /bin/shiboken6*
+  - /lib/python3*/site-packages/shiboken6_generator*
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
+  - rm -f /app/cleanup-BaseApp*.sh
+modules:
+  # Minim's modules first, in its order, so a build after Minim's reuses them.
+  - libass.yml
+  - pygobject.yml
+  - dbus-python.yml
+  - python3-minim-deps.yaml
+  - chromaprint.yml
+  - python3-quaver-deps.yaml
+
+  - name: quaver
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/share/suite/media_core /app/share/suite/quaver /app/share/suite/minim
+      - cp -r media_core/media_core /app/share/suite/media_core/
+      - cp -r quaver/quaver /app/share/suite/quaver/
+      - cp -r minim/minim /app/share/suite/minim/
+      - rm -rf /app/share/suite/*/*/tests
+      - find /app/share/suite -name __pycache__ -prune -exec rm -rf {} +
+      # By hash: the deployed files' timestamps don't survive installation.
+      - python3 -m compileall -q --invalidation-mode checked-hash /app/share/suite
+      - install -Dm755 flatpak/launch.sh /app/bin/quaver
+      - install -Dm755 flatpak/launch.sh /app/bin/minim
+      - install -Dm644 quaver/quaver/resources/quaver.svg
+          /app/share/icons/hicolor/scalable/apps/com.jacksonv.Quaver.svg
+      # The checkout's entry, with the Flatpak's command and icon.
+      - sed -e 's|^Exec=.*|Exec=quaver|'
+            -e 's|^Icon=.*|Icon=com.jacksonv.Quaver|'
+            desktop/quaver.desktop.in > com.jacksonv.Quaver.desktop
+      - install -Dm644 -t /app/share/applications com.jacksonv.Quaver.desktop
+      - install -Dm644 -t /app/share/metainfo flatpak/com.jacksonv.Quaver.metainfo.xml
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - .git
+          - .flatpak-builder
+          - build

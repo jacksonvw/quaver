@@ -1,0 +1,19 @@
+# Python packages Quaver needs on top of requirements-minim.txt. Every
+# version is pinned, dependencies included. After changing one, regenerate
+# python3-quaver-deps.yaml as flatpak/README.md describes.
+audioop-lts==0.2.2
+audioread==3.1.0
+certifi==2026.7.22
+charset-normalizer==3.5.2
+feedparser==6.0.14
+feedparser-sgmllib==2.1.0
+idna==3.20
+musicbrainzngs==0.7.1
+pyacoustid==1.3.1
+requests==2.34.2
+standard-aifc==3.13.0
+standard-chunk==3.13.0
+standard-sunau==3.13.0
+urllib3==2.8.0
+watchdog==6.0.0
+yt-dlp==2026.10.21

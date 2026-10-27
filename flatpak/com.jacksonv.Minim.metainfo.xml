@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.jacksonv.Minim</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+
+  <name>Minim</name>
+  <summary>Lightweight media player</summary>
+  <developer id="com.jacksonv">
+    <name>Jackson Vander Wal</name>
+  </developer>
+
+  <description>
+    <p>
+      Minim plays whatever you open, with no library and no scanning: a file
+      in Downloads that should just play. It is the lightweight sibling of
+      Quaver, on the same engine, so playback, the queue, Now Playing and the
+      equalizer behave the same in each.
+    </p>
+    <ul>
+      <li>Plays whatever you open: from the file manager, the command line, Ctrl+O or drag and drop</li>
+      <li>Drop on the artwork to play now, on the queue to add; a folder queues every file in it</li>
+      <li>No library and no history: each launch starts with an empty queue</li>
+      <li>Gapless playback, ReplayGain, a 10-band equalizer with presets, a compressor and 0.5–2× speed</li>
+      <li>Video, with ASS/SSA subtitles rendered by libass, SRT and VTT, and audio and subtitle track switching</li>
+      <li>Now Playing: large artwork on a blurred or gradient background, with a spectrum visualizer</li>
+      <li>Fullscreen with a floating transport, and media controls from the desktop</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">com.jacksonv.Minim.desktop</launchable>
+  <provides>
+    <binary>minim</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/jacksonvw/quaver</url>
+  <url type="bugtracker">https://github.com/jacksonvw/quaver/issues</url>
+  <url type="vcs-browser">https://github.com/jacksonvw/quaver</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/jacksonvw/quaver/main/docs/screenshots/minim.png</image>
+      <caption>Playing a video, with the queue hidden</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/jacksonvw/quaver/main/docs/screenshots/minim-music.png</image>
+      <caption>Playing an album folder</caption>
+    </screenshot>
+  </screenshots>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.0.1" date="2026-10-26"/>
+  </releases>
+</component>

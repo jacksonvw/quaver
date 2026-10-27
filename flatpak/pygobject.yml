@@ -1,0 +1,14 @@
+# PyGObject, which media_core plays through: the KDE runtime has GStreamer
+# and its introspection data, but not the Python bindings.
+name: pygobject
+buildsystem: meson
+config-opts:
+  - -Dpycairo=disabled
+  - -Dtests=false
+cleanup:
+  - /include
+  - /lib/pkgconfig
+sources:
+  - type: archive
+    url: https://files.pythonhosted.org/packages/65/1e/d590f82e14db75945b03f6b63e0f19662e0340babd8f574fdb1bb5a015e2/pygobject-3.58.1.tar.gz
+    sha256: 4c80598ade17fbaa7798e01a25d0bf29ce109740786026a074c5c62bb3e79d23

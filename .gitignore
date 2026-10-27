@@ -9,6 +9,7 @@ venv/
 
 # Test / tool caches
 .pytest_cache/
+.flatpak-builder/
 
 # Editor droppings
 *.swp
