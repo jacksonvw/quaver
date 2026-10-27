@@ -521,14 +521,10 @@ class AudioEngine:
             log.debug("Stream %s: no tags", fallback)
             return fallback
 
-        # Log ALL available tags so we can debug label issues.
-        tag_names = [tags.nth_tag_name(i) for i in range(tags.n_tags())]
-        tag_vals = {}
-        for tn in tag_names:
-            ok, v = tags.get_string(tn)
-            if ok:
-                tag_vals[tn] = v
-        log.debug("Stream %s tags: %s", fallback, tag_vals)
+        # Log ALL available tags so we can debug label issues.  As one
+        # string: get_string on a tag that isn't one (a bitrate, say)
+        # makes GLib print a g_value_get_string assertion to stderr.
+        log.debug("Stream %s tags: %s", fallback, tags.to_string())
 
         # Gather what we have.
         ok, title = tags.get_string("title")
