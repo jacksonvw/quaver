@@ -17,13 +17,16 @@ def main() -> None:
 
     app = QApplication(sys.argv)
     app.setApplicationName("Quaver")
-    app.setDesktopFileName("quaver")
+    # The Wayland app_id; it has to match the installed quaver.desktop, or
+    # in the Flatpak, the desktop entry and icon named for the app ID.
+    app_id = "com.jacksonv.Quaver" if "FLATPAK_ID" in os.environ else "quaver"
+    app.setDesktopFileName(app_id)
 
     icon_path = Path(__file__).parent / "resources" / "quaver.svg"
     if icon_path.is_file():
     # A theme name lets KWin render the icon itself.  Without one, Qt sends
     # pixel buffers whose alpha KWin misreads, blackening anti-aliased edges.
-        app.setWindowIcon(QIcon.fromTheme("quaver", QIcon(str(icon_path))))
+        app.setWindowIcon(QIcon.fromTheme(app_id, QIcon(str(icon_path))))
 
     try:
         window = MainWindow()

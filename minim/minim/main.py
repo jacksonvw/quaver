@@ -54,13 +54,17 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("Minim")
     app.setOrganizationName("Minim")
-    app.setDesktopFileName("minim")
+    # The Wayland app_id; it has to match the installed minim.desktop, or in
+    # a Flatpak, the desktop entry and icon named for Minim's app ID. Not
+    # FLATPAK_ID, since "Open in Minim" runs Minim inside Quaver's Flatpak.
+    app_id = "com.jacksonv.Minim" if "FLATPAK_ID" in os.environ else "minim"
+    app.setDesktopFileName(app_id)
 
     icon_path = Path(__file__).parent / "resources" / "minim.svg"
     if icon_path.is_file():
         # A theme name lets KWin render the icon itself.  Without one, Qt sends
         # pixel buffers whose alpha KWin misreads, blackening anti-aliased edges.
-        app.setWindowIcon(QIcon.fromTheme("minim", QIcon(str(icon_path))))
+        app.setWindowIcon(QIcon.fromTheme(app_id, QIcon(str(icon_path))))
 
     # Everything past argv[0] is a path to play.
     initial_paths = sys.argv[1:]
