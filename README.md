@@ -42,9 +42,10 @@ equalizer behave the same in each.
 ## Status
 
 In progress, and working on Fedora 44 with KDE Plasma 6 on Wayland, run from a
-checkout, and on SteamOS 3.9 as Flatpaks. Missing: a Flathub listing (the
-Flatpaks build from this repository), SMB sources in the Flatpaks, and testing
-on other distributions.
+checkout, and on SteamOS 3.9 as Flatpaks. In development: a built-in SMB
+client, so network sources work in the Flatpaks too. Missing: a Flathub
+listing (the Flatpaks build from this repository) and testing on other
+distributions.
 
 ## Built with
 
@@ -124,7 +125,8 @@ the tag editor and downloads. Their logs go to
 `~/.var/app/com.jacksonv.Minim/cache/minim.log`, and their settings and
 Quaver's library database to the `config/` and `data/` folders beside them.
 SMB sources don't work in the Flatpaks yet, since a sandbox can't reach KIO
-FUSE's mounts; a share mounted as an ordinary folder does. Moving from a
+FUSE's mounts. A built-in SMB client, as Kodi has, is in development; until
+then, a share mounted as an ordinary folder works. Moving from a
 checkout install to the Flatpaks, delete
 `~/.local/share/applications/quaver.desktop` and `minim.desktop`, or both
 versions appear in the app menu. `flatpak/README.md` covers updating the
