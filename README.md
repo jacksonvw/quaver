@@ -41,8 +41,10 @@ equalizer behave the same in each.
 
 ## Status
 
-In progress, and working on Fedora 44 with KDE Plasma 6 on Wayland. Missing:
-packages (both run from a checkout) and testing on other distributions.
+In progress, and working on Fedora 44 with KDE Plasma 6 on Wayland, run from a
+checkout, and on SteamOS 3.9 as Flatpaks. Missing: a Flathub listing (the
+Flatpaks build from this repository), SMB sources in the Flatpaks, and testing
+on other distributions.
 
 ## Built with
 
@@ -50,13 +52,16 @@ Python 3 and PySide6 (Qt 6), with GStreamer 1.x through PyGObject for audio
 and video. libass, called through ctypes, renders subtitles; mutagen, SQLite
 and watchdog run the library; musicbrainzngs, pyacoustid, feedparser, httpx
 and yt-dlp handle lookups, podcasts and YouTube; dbus-python provides MPRIS2.
-It targets Linux: Fedora's system Python and RPMs, on KDE Plasma 6.
+It targets Linux: Fedora's system Python and RPMs, on KDE Plasma 6. The
+Flatpaks get the same from KDE's Flatpak runtime, with PySide6 from Qt's base
+app and their own builds of PyGObject, dbus-python, libass and Chromaprint.
 
 | Directory | What it is |
 |---|---|
 | `quaver/` | The library app |
 | `minim/` | The click-to-play player |
 | `media_core/` | The shared engine: playback, transport, queue, Now Playing and MPRIS2 |
+| `flatpak/` | The Flatpak manifests, their pinned Python packages, and their software-centre metadata |
 
 ## Build and run
 
@@ -95,6 +100,35 @@ re-run, including after moving the checkout.
 Every package above comes from Fedora's own repositories, which decode
 H.264, AAC, AC-3 and AV1 but not HEVC or E-AC-3; RPM Fusion's full `ffmpeg`
 adds those. Other distributions need the equivalent packages.
+
+On any distribution with Flatpak, SteamOS included, both apps build as
+Flatpaks instead, with nothing installed outside Flatpak; the runtime decodes
+HEVC and E-AC-3 too. Quaver's Flatpak carries Minim as well, for Open in Minim:
+
+```bash
+flatpak install flathub org.flatpak.Builder \
+    org.kde.Platform//6.11 org.kde.Sdk//6.11 io.qt.PySide.BaseApp//6.11
+
+git clone https://github.com/jacksonvw/quaver.git
+cd quaver
+flatpak run org.flatpak.Builder --user --install --force-clean \
+    build/flatpak flatpak/com.jacksonv.Quaver.yml
+flatpak run org.flatpak.Builder --user --install --force-clean \
+    build/flatpak flatpak/com.jacksonv.Minim.yml
+desktop/install.sh --flatpak    # Minim as the default player
+```
+
+Minim's Flatpak can read any file but change none; Quaver's can write too, for
+the tag editor and downloads. Their logs go to
+`~/.var/app/com.jacksonv.Quaver/cache/quaver.log` and
+`~/.var/app/com.jacksonv.Minim/cache/minim.log`, and their settings and
+Quaver's library database to the `config/` and `data/` folders beside them.
+SMB sources don't work in the Flatpaks yet, since a sandbox can't reach KIO
+FUSE's mounts; a share mounted as an ordinary folder does. Moving from a
+checkout install to the Flatpaks, delete
+`~/.local/share/applications/quaver.desktop` and `minim.desktop`, or both
+versions appear in the app menu. `flatpak/README.md` covers updating the
+Python packages they bundle.
 
 The tests run headless, on Qt's offscreen platform, in a couple of seconds:
 
