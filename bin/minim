@@ -10,6 +10,10 @@
 # and a desktop session can inherit a VIRTUAL_ENV-prefixed PATH that puts
 # another Python first — a bare `python3` there has no PySide6 and crashes
 # with ModuleNotFoundError when launched from the file manager.
+#
+# Pass -P too, to keep the folder Minim was started in off sys.path: it
+# can start from anywhere, and a logging.py there mustn't be imported in
+# place of Python's.
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 exec env PYTHONPATH="$ROOT/minim" \
-    nohup /usr/bin/python3 -m minim.main "$@" >/tmp/minim.log 2>&1 &
+    nohup /usr/bin/python3 -P -m minim.main "$@" >/tmp/minim.log 2>&1 &

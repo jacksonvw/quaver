@@ -7,6 +7,9 @@
 # truncated on each launch, as the checkout's log is. The suite keeps the
 # checkout's layout, so each app's __init__ finds ../media_core as it does
 # there.
+#
+# -P keeps the folder the app was started in off sys.path. It can start from
+# anywhere, and a logging.py there mustn't be imported in place of Python's.
 app=$(basename "$0")
 export PYTHONPATH="/app/share/suite/$app"
-exec python3 -m "$app.main" "$@" >"$XDG_CACHE_HOME/$app.log" 2>&1
+exec python3 -P -m "$app.main" "$@" >"$XDG_CACHE_HOME/$app.log" 2>&1

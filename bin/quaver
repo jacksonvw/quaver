@@ -8,6 +8,10 @@
 # Pin /usr/bin/python3 explicitly: the dependencies are system packages,
 # and a desktop session can inherit a VIRTUAL_ENV-prefixed PATH that puts
 # another Python first — bare `python3` would miss PySide6 there.
+#
+# Pass -P too, to keep the folder Quaver was started in off sys.path: it
+# can start from anywhere, and a logging.py there mustn't be imported in
+# place of Python's.
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 exec env PYTHONPATH="$ROOT/quaver" \
-    nohup /usr/bin/python3 -m quaver.main "$@" >/tmp/quaver.log 2>&1 &
+    nohup /usr/bin/python3 -P -m quaver.main "$@" >/tmp/quaver.log 2>&1 &
