@@ -129,7 +129,14 @@ class MainWindow(QMainWindow):
         self._tag_reader = TagReader(self)
         self._player.track_changed.connect(self._tag_reader.ensure)
         self._library_service = LibraryService(self._db)
-        self._mpris2 = Mpris2Service(self._player) if Mpris2Service else None
+        # Optional MPRIS2.  Failure (no D-Bus, name taken) is non-fatal.
+        self._mpris2 = None
+        if Mpris2Service:
+            try:
+                self._mpris2 = Mpris2Service(self._player)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).info("MPRIS2 unavailable: %s", e)
         self._podcast_service = PodcastService(self._db)
         self._youtube_service = YouTubeService(self._db)
         self._metadata_service = MetadataService(self._db)
