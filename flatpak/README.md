@@ -4,6 +4,15 @@
 KDE's Flatpak runtime; the main README has the build commands. Quaver's
 Flatpak carries Minim too, for "Open in Minim".
 
+## Qt and PySide
+
+The base app's PySide6 uses Qt's private API, which is tied to one exact Qt
+release, and KDE's runtime and Qt's base app update separately. When the
+runtime moves to a new Qt first, no window opens, and the app's log ends in
+`could not import module 'PySide6.QtCore'`, until the base app catches up. The
+Flatpaks then need rebuilding, since the build copies PySide6 out of the base
+app.
+
 ## Python packages
 
 The packages from PyPI are pinned, dependencies included, in
